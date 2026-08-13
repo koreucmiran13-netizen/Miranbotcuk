@@ -257,6 +257,11 @@ function attachMessageListener(botId: string): void {
       msg.message.imageMessage?.caption ||
       msg.message.videoMessage?.caption ||
       '';
+    // v3.6: tam mesaj debug'ı — her mesajı logla (komutlar dahil)
+    const isCmd = String(text).trim().startsWith('!');
+    if (isCmd || text.length > 0) {
+      console.log(`[MSG] [${botId}] from=${from} self=${msg.key.fromMe} type=${m.type} keys=${Object.keys(msg.message).join(',')} text=${JSON.stringify(text.slice(0, 120))}`);
+    }
     // Okundu işareti (arka planda)
     const sock = state.sock;
     if (text && sock) {
