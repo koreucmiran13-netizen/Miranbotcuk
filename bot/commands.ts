@@ -59,13 +59,11 @@ export async function handleMessages(
   const [name, ...rest] = cmd.slice(1).split(/\s+/);
   const arg = rest.join(' ');
 
-  // Bilgi komutları her yerden çalışır; gerisi SADECE admin grubu
-  const infoCommands = new Set(['durum', 'botdurum', 'yardım', 'yardim', 'help', 'komutlar', 'komut']);
-
-  if (!isAdminGroup) {
-    // Admin grubu DIŞINDAKİ her yer (özel sohbet + diğer gruplar) admin komutlarını görmezden gelir
-    if (!infoCommands.has(name)) return;
-  }
+  // v3.3: Komutlar SADECE admin grubundan çalışır.
+  // Admin grubu DIŞINDAKİ her yer (özel sohbet + diğer gruplar) TÜM komutları
+  // görmezden gelir — yalnızca davet linki avcılığı (üstte) aktif kalır.
+  // !adminburasi istisnası: her yerden yazılabilir, yazıldığı gruba geçiş yapar.
+  if (!isAdminGroup && name !== 'adminburasi' && name !== 'admingrubu') return;
 
   const sock = state.sock;
   const reply = (t: string) => {
@@ -73,7 +71,7 @@ export async function handleMessages(
     enqueue({ sock, jid: from, text: t });
   };
 
-  // ---------------- bilgi komutları (her yerden) ----------------
+  // ---------------- bilgi komutları (yalnızca admin grubundan) ----------------
   if (name === 'durum' || name === 'botdurum') {
     const st = getState(botId);
     reply(
@@ -87,6 +85,7 @@ export async function handleMessages(
   }
 
   if (name === 'yardım' || name === 'yardim' || name === 'help' || name === 'komutlar' || name === 'komut') {
+    // v3.3: !yardım da artık yalnızca admin grubundan cevap verir
     reply(
       `🤖 *MİRAN BOT* 🤖\n` +
         `━━━━━━━━━━━━━━\n` +
@@ -109,7 +108,10 @@ export async function handleMessages(
   // Bilgi komutlarından buraya düşenler zaten engellendi (üstteki return'lar)
 
   if (name === 'adminburasi' || name === 'admingrubu') {
-    if (!group) return; // admin komutu grup dışından hiç cevap vermez
+    if (!group) {
+      reply('⚠️ Bu komut yalnızca bir grupta çalışır. Admin grubu yapmak istediğin gruba yaz.');
+      return;
+    }
     const cfg = getConfig(botId);
     if (cfg) {
       cfg.adminGroupId = from;
