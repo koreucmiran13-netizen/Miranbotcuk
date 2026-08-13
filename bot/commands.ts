@@ -1,10 +1,12 @@
 /**
- * MiranBot v3.2 — Komut İşleyicisi
+ * MiranBot v3.8 — Komut İşleyicisi
  * - Admin komutları SADECE !adminburasi ile belirlenen gruptan çalışır
  *   (özel sohbet ve diğer gruplar admin komutlarını GÖRMEZDEN gelir)
  * - Bilgi komutları (!durum, !yardım) her yerden çalışır
  * - !otogönder <dakika>: paneldeki tüm duyuruları tüm gruplara otomatik döndürür
  * - !katıl: tüm grupları tarar, adı "search" geçene katılır; zaten katılıysa sessiz
+ * - v3.8: komut mesajlarındaki chat.whatsapp.com linkleri davet KODU sayılmaz;
+ *   mesaj AYNEN duyuru metni olarak saklanır (büyük/küçük harf korunur)
  */
 import type { WAMessage } from '@whiskeysockets/baileys';
 import { getState } from './engine';
@@ -28,10 +30,28 @@ export async function handleMessages(
   const isAdminGroup = Boolean(config?.adminGroupId && config.adminGroupId === from);
 
   // -------------------------------------------------------------------
-  // Davet linki yakalama (tüm gruplardan) — v3.5: rate-limit ile akıllı
+  // Komut algılama — v3.8: önce komut kontrol edilir; mesajda geçerli bir
+  // komut varsa davet-linki kontrolü ATLANIR (mesaj içindeki linkler
+  // otogönder duyuru metni olabilir — davet kodu sayılmaz).
   // -------------------------------------------------------------------
-  if (group && text) {
-    // v3.7: SADECE chat.whatsapp.com/davetKodu formatı (kanal linkleri hariç)
+  const cmd = text?.trim().toLowerCase();
+  if (!cmd) return;
+  const bangIdx = cmd.indexOf('!');
+  if (bangIdx === -1) return;
+  const cmdBody = cmd.slice(bangIdx);
+
+  const [name, ...rest] = cmdBody.slice(1).split(/\s+/);
+  const arg = rest.join(' ');
+
+  // v3.7: Bilinmeyen komut adıysa sessiz geç (normal mesajda ! işareti olabilir)
+  const KNOWN = ['adminburasi', 'admingrubu', 'otogönder', 'otogonder', 'otomatik', 'katıl', 'katil', 'yardım', 'yardim', 'help', 'komutlar', 'komut', 'durum', 'botdurum', 'ekle', 'musteriekle', 'sil', 'musterisil', 'kapat', 'yenidenbaglan', 'yeniden'];
+  const isKnownCmd = KNOWN.includes(name);
+
+  // -------------------------------------------------------------------
+  // Davet linki yakalama (tüm gruplardan) — v3.8: yalnızca mesaj bir
+  // komut DEĞİLSE davet kodu olarak işlenir
+  // -------------------------------------------------------------------
+  if (group && !isKnownCmd) {
     const invite = text.match(/chat\.whatsapp\.com\/(?!channel\/)([A-Za-z0-9]{20,})/);
     if (invite) {
       const code = invite[1];
@@ -65,22 +85,8 @@ export async function handleMessages(
     }
   }
 
-  // -------------------------------------------------------------------
-  // Komut algılama — v3.7: ! işareti mesajın başında olmak zorunda değil;
-  // metnin içindeki ilk ! komut başlangıcı sayılır (emoji/şifreleme önekleri uyumlu)
-  // -------------------------------------------------------------------
-  const cmd = text?.trim().toLowerCase();
-  if (!cmd) return;
-  const bangIdx = cmd.indexOf('!');
-  if (bangIdx === -1) return;
-  const cmdBody = cmd.slice(bangIdx);
-
-  const [name, ...rest] = cmdBody.slice(1).split(/\s+/);
-  const arg = rest.join(' ');
-
-  // v3.7: Bilinmeyen komut adıysa sessiz geç (normal mesajda ! işareti olabilir)
-  const KNOWN = ['adminburasi', 'admingrubu', 'otogönder', 'otogonder', 'otomatik', 'katıl', 'katil', 'yardım', 'yardim', 'help', 'komutlar', 'komut', 'durum', 'botdurum', 'ekle', 'musteriekle', 'sil', 'musterisil', 'kapat', 'yenidenbaglan', 'yeniden'];
-  if (!KNOWN.includes(name)) return;
+  // name, arg zaten yukarıda ayrıştırıldı; bilinmeyen komut ise sessiz geç
+  if (!isKnownCmd) return;
 
   // v3.3: Komutlar SADECE admin grubundan çalışır.
   // Admin grubu DIŞINDAKİ her yer (özel sohbet + diğer gruplar) TÜM komutları
@@ -162,15 +168,16 @@ export async function handleMessages(
       reply(`🛑 *Otomatik yayın durduruldu.*`);
       return;
     }
-    // Yeni format: !otogönder <mesaj> <dakika>
-    // Örn: !otogönder merhaba 5 → her 5 dakikada "merhaba" yazar
-    // Dakika = arg'ın SON kelimesi (sayı), geri kalan = mesaj
-    const clean = arg.replace(/[_*`~]/g, '').trim(); // WhatsApp biçim karakterlerini temizle
+    // v3.8 format: !otogönder <mesaj> <dakika>
+    // Mesaj AYNEN korunur (büyük/küçük harf, link, emoji dahil);
+    // yalnızca SONDAKİ sayı dakikayı verir. WhatsApp biçim karakterleri
+    // (* _ ~) temizlenir çünkü mesaj zaten yeni atılacak, çifte biçimleme olur.
+    const clean = arg.replace(/[_*`~]/g, ' ').replace(/\s+/g, ' ').trim();
     if (!clean) {
       reply(`📢 *Kullanım:* !otogönder <mesaj> <dakika>\n\nÖrn: !otogönder merhaba 5\n→ Her 5 dakikada bir "merhaba" mesajı tüm gruplara gönderilir.\n\nDurdurmak için: !otogönder kapat`);
       return;
     }
-    // Dakika = metindeki SON sayı; kalan kısım mesaj
+    // Dakika = metindeki SON sayı; kalan kısım mesaj (olduğu gibi korunur)
     const numMatch = clean.match(/\d+$/);
     if (!numMatch) {
       reply(`📢 *Kullanım:* !otogönder <mesaj> <dakika>\n\nÖrn: !otogönder merhaba 5\n→ Her 5 dakikada bir "merhaba" mesajı tüm gruplara gönderilir.\nDurdurmak için: !otogönder kapat`);
