@@ -28,13 +28,19 @@ export async function handleMessages(
   const isAdminGroup = Boolean(config?.adminGroupId && config.adminGroupId === from);
 
   // -------------------------------------------------------------------
-  // Davet linki yakalama (tüm gruplardan)
+  // Davet linki yakalama (tüm gruplardan) — v3.5: rate-limit ile akıllı
   // -------------------------------------------------------------------
   if (group && text) {
     const invite = text.match(/chat\.whatsapp\.com\/([A-Za-z0-9]{20,})/);
     if (invite) {
       const code = invite[1];
       const sock = state.sock;
+      // account_reachout_restricted hatası sonrası beklet (60 dk)
+      const until = (state as any).inviteCooldownUntil || 0;
+      if (Date.now() < until) {
+        console.log(`[CMD] [${botId}] Davet avcılığı bekletildi (WhatsApp kısıtlaması), kalan: ${Math.round((until - Date.now()) / 60000)} dk`);
+        return;
+      }
       if (sock) {
         void sock
           .groupAcceptInvite(code)
@@ -44,7 +50,15 @@ export async function handleMessages(
               console.log(`[CMD] [${botId}] Davet linki kabul edildi: ${gid}`);
             }
           })
-          .catch((e) => console.error('[CMD] Davet kabul edilemedi:', e?.message ?? e));
+          .catch((e) => {
+            const em = typeof e === 'object' && e ? (e as { message?: string }).message ?? String(e) : String(e);
+            if (em.includes('reachout_restricted') || em.includes('not-authorized') || em.includes('forbidden')) {
+              (state as any).inviteCooldownUntil = Date.now() + 60 * 60 * 1000;
+              console.log(`[CMD] [${botId}] WhatsApp kısıtlaması tespit edildi — davet avcılığı 60 dk bekletiliyor. (${em})`);
+            } else {
+              console.error('[CMD] Davet kabul edilemedi:', em);
+            }
+          });
       }
       return;
     }
@@ -116,11 +130,19 @@ export async function handleMessages(
       reply('⚠️ Bu komut yalnızca bir grupta çalışır. Admin grubu yapmak istediğin gruba yaz.');
       return;
     }
-    const cfg = getConfig(botId);
-    if (cfg) {
-      cfg.adminGroupId = from;
-      saveConfig(loadConfig());
+    // v3.5: Kayıt garantisi — config var olmasa da oluştur, yaz, ardından okuyup doğrula
+    const c = loadConfig();
+    if (!c.bots[botId]) c.bots[botId] = { announcements: [], running: false };
+    c.bots[botId].adminGroupId = from;
+    saveConfig(c);
+    // Doğrulama: diske yeniden yazıldı mı?
+    const verify = loadConfig();
+    const ok = verify.bots[botId]?.adminGroupId === from;
+    console.log(`[CMD] [${botId}] adminGroupId ${ok ? 'KAYDEDİLDİ' : 'KAYDEDİLEMEDİ!'}: ${from} (config dosyasından okunan: ${verify.bots[botId]?.adminGroupId ?? '(yok)'})`);
+    if (ok) {
       reply(`👑 *Bu grup admin grubu olarak ayarlandı!*\n\n✅ Artık tüm admin komutları yalnızca buradan çalışır.`);
+    } else {
+      reply('⚠️ Admin grubu kaydedilemedi — sunucu diskinde bir sorun olabilir, lütfen yetkiliye bildir.');
     }
     return;
   }
