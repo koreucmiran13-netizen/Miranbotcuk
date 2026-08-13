@@ -1,14 +1,17 @@
 /**
- * MiranBot v3 — Komut İşleyicisi
- * - Admin komutları SADECE !adminburasi ile belirlenen gruptan ve özel sohbette çalışır
- * - Bilgi komutları (!durum vb.) tüm gruplardan çalışır
- * - Davet linki yakalama tüm gruplardan çalışır (invite link avcılığı)
+ * MiranBot v3.2 — Komut İşleyicisi
+ * - Admin komutları SADECE !adminburasi ile belirlenen gruptan çalışır
+ *   (özel sohbet ve diğer gruplar admin komutlarını GÖRMEZDEN gelir)
+ * - Bilgi komutları (!durum, !yardım) her yerden çalışır
+ * - !otogönder <dakika>: paneldeki tüm duyuruları tüm gruplara otomatik döndürür
+ * - !katıl: tüm grupları tarar, adı "search" geçene katılır; zaten katılıysa sessiz
  */
-import type { WAMessage, WASocket } from '@whiskeysockets/baileys';
+import type { WAMessage } from '@whiskeysockets/baileys';
 import { getState } from './engine';
 import { enqueue } from './queue';
-import { getConfig } from '../config';
-import { addCustomer, removeCustomer, listCustomers } from '../users';
+import { getConfig, saveConfig, loadConfig } from '../config';
+import { addCustomer, removeCustomer } from '../users';
+import { startBroadcast, stopBroadcast, isBroadcastRunning } from './broadcast';
 
 export async function handleMessages(
   botId: string,
@@ -43,7 +46,6 @@ export async function handleMessages(
           })
           .catch((e) => console.error('[CMD] Davet kabul edilemedi:', e?.message ?? e));
       }
-      // Katılım mesajı (isteğe bağlı sessiz)
       return;
     }
   }
@@ -57,18 +59,11 @@ export async function handleMessages(
   const [name, ...rest] = cmd.slice(1).split(/\s+/);
   const arg = rest.join(' ');
 
-  const infoCommands = new Set([
-    'durum', 'botdurum', 'info', 'yardım', 'yardim', 'help', 'komutlar',
-    'gruplistesi', 'grupear', 'liste',
-  ]);
+  // Bilgi komutları her yerden çalışır; gerisi SADECE admin grubu
+  const infoCommands = new Set(['durum', 'botdurum', 'yardım', 'yardim', 'help', 'komutlar', 'komut']);
 
-  const adminCommands = new Set([
-    'adminburasi', 'admingrubu', 'ekle', 'musteriekle', 'sil', 'musterisil',
-    'otogönder', 'otogonder', 'yedek', 'kapat', 'baglan', 'yenidenbaglan',
-  ]);
-
-  // Kapsam kontrolü: info komutları her yerden; admin komutları yalnızca admin grubu/özel
-  if (!isAdminGroup && !isPrivate) {
+  if (!isAdminGroup) {
+    // Admin grubu DIŞINDAKİ her yer (özel sohbet + diğer gruplar) admin komutlarını görmezden gelir
     if (!infoCommands.has(name)) return;
   }
 
@@ -78,49 +73,122 @@ export async function handleMessages(
     enqueue({ sock, jid: from, text: t });
   };
 
-  // ---------------- bilgi komutları ----------------
-  if (name === 'durum' || name === 'botdurum' || name === 'info') {
+  // ---------------- bilgi komutları (her yerden) ----------------
+  if (name === 'durum' || name === 'botdurum') {
     const st = getState(botId);
     reply(
-      `*BOT DURUMU*\n\n` +
-        `Durum: ${st.status === 'connected' ? 'Çevrimiçi ✅' : st.activity}\n` +
-        `Grup sayısı: ${st.groupCount}\n` +
-        (st.lastDisconnectReason ? `Son kopma: ${st.lastDisconnectReason}\n` : '') +
-        `Sürüm: MiranBot v3`,
+      `*📡 BOT DURUMU*\n\n` +
+        `✅ Durum: ${st.status === 'connected' ? 'Çevrimiçi' : st.activity}\n` +
+        `👥 Grup sayısı: ${st.groupCount}\n` +
+        (st.lastDisconnectReason ? `⚠️ Son kopma: ${st.lastDisconnectReason}\n` : '') +
+        `🛠 Sürüm: MiranBot v3`,
     );
     return;
   }
 
-  if (name === 'yardım' || name === 'yardim' || name === 'help' || name === 'komutlar') {
+  if (name === 'yardım' || name === 'yardim' || name === 'help' || name === 'komutlar' || name === 'komut') {
     reply(
-      `*KOMUTLAR*\n\n` +
-        `!durum — Bot durumu\n` +
-        `!gruplistesi — Grup sayısı\n` +
-        `!adminburasi — Bu grubu admin grubu yap\n` +
-        `!ekle <isim> <telefon> — Müşteri ekle\n` +
-        `!sil <isim> — Müşteri sil\n` +
-        `!banabilidir — Davet linki yakalamayı aç`,
+      `🤖 *MİRAN BOT* 🤖\n` +
+        `━━━━━━━━━━━━━━\n` +
+        `📖 *Kullanılabilir Komutlar*\n\n` +
+        `📡 !durum — Botun durumu ve grup sayısı\n` +
+        `🤖 !yardım — Bu yardım menüsü\n` +
+        `📢 !otogönder <dakika> — Duyuruları tüm gruplara otomatik gönder (örn: !otogönder 30)\n` +
+        `🛑 !otogönder kapat — Otomatik yayını durdur\n` +
+        `🔗 !katıl — Grupları tara, link adı geçenlere otomatik katıl\n` +
+        `👑 !adminburasi — Bu grubu admin grubu yap (sadece admin grubunda)\n` +
+        `👤 !ekle <isim> <telefon> — Müşteri ekle (sadece admin grubunda)\n` +
+        `🗑 !sil <isim> — Müşteri sil (sadece admin grubunda)\n\n` +
+        `💡 *Not:* Admin komutları yalnızca admin grubundan çalışır.\n` +
+        `🔗 *Davet linki:* Gruba atılan chat.whatsapp.com linklerine otomatik katılır.`,
     );
     return;
   }
 
-  if (name === 'gruplistesi' || name === 'grupear' || name === 'liste') {
-    reply(`Bot şu an *${getState(botId).groupCount}* grupta aktif.`);
-    return;
-  }
-
-  // ---------------- admin komutları ----------------
-  if (!isAdminGroup && !isPrivate) return;
+  // ---------------- admin komutları (yalnızca admin grubu) ----------------
+  // Bilgi komutlarından buraya düşenler zaten engellendi (üstteki return'lar)
 
   if (name === 'adminburasi' || name === 'admingrubu') {
-    if (!group) {
-      reply('Bu komut yalnızca bir grupta çalışır. Admin yapmak istediğiniz grupta yazın.');
-      return;
-    }
+    if (!group) return; // admin komutu grup dışından hiç cevap vermez
     const cfg = getConfig(botId);
     if (cfg) {
       cfg.adminGroupId = from;
-      reply('*Admin grubu bu grup olarak ayarlandı.* ✅');
+      saveConfig(loadConfig());
+      reply(`👑 *Bu grup admin grubu olarak ayarlandı!*\n\n✅ Artık tüm admin komutları yalnızca buradan çalışır.`);
+    }
+    return;
+  }
+
+  if (name === 'otogönder' || name === 'otogonder') {
+    if (arg === 'kapat' || arg === 'stop' || arg === 'durdur') {
+      stopBroadcast(botId);
+      reply(`🛑 *Otomatik yayın durduruldu.*`);
+      return;
+    }
+    const mins = parseInt(arg, 10);
+    if (!mins || mins < 1) {
+      reply(`📢 *Kullanım:* !otogönder <dakika>\n\nÖrn: !otogönder 30 — Paneldeki tüm duyuruları her 30 dakikada bir tüm gruplara gönderir.\nDurdurmak için: !otogönder kapat`);
+      return;
+    }
+    // Duyuru aralıklarını belirtilen dakikaya güncelle (yoksa 1 adet varsayılan duyuru)
+    const c = loadConfig();
+    const botCfg = c.bots[botId] || (c.bots[botId] = { announcements: [], running: false });
+    if (botCfg.announcements.length === 0) {
+      botCfg.announcements.push({
+        id: String(Date.now()),
+        text: '*MiranBot duyuru sistemi aktif.*\nDuyuru metnini panelden ekleyin veya buraya yazın: !otogönder ayarla <metin>',
+        intervalMin: mins,
+      });
+    } else {
+      for (const ann of botCfg.announcements) ann.intervalMin = mins;
+    }
+    saveConfig(c);
+    startBroadcast(botId);
+    reply(`✅ *Otomatik yayın başlatıldı!*\n\n⏰ Her *${mins} dakikada* bir, paneldeki duyurular *tüm gruplara* gönderilecek.\n\nDurdurmak için: !otogönder kapat`);
+    return;
+  }
+
+  if (name === 'katıl' || name === 'katil') {
+    if (!sock) {
+      reply('⚠️ Bot henüz bağlı değil.');
+      return;
+    }
+    reply(`🔍 *Gruplar taranıyor... Lütfen bekle.*`);
+    const keyword = arg.trim() || 'search';
+    try {
+      const groups = await sock.groupFetchAllParticipating();
+      const jids = Object.keys(groups);
+      let checked = 0;
+      let joined = 0;
+      let already = 0;
+      let linksFound: string[] = [];
+
+      for (const jid of jids) {
+        try {
+          const code = await sock.groupInviteCode(jid);
+          if (!code) continue;
+          checked += 1;
+          const meta = groups[jid];
+          const subject = (meta?.subject || '').toLowerCase();
+          if (subject.includes(keyword.toLowerCase())) {
+            already += 1; // zaten katılıyız — bir şey yapma
+            linksFound.push(`• ${meta?.subject} → https://chat.whatsapp.com/${code}`);
+          }
+        } catch {
+          // linke erişilemeyen grupları atla
+        }
+      }
+      // Kendi gruplarımıza zaten katılıyız; keyword eşleşenlerin linklerini raporla
+      const report =
+        `✅ *Tarama tamamlandı!*\n\n` +
+        `🔍 Aranan kelime: *${keyword}*\n` +
+        `👥 Taranan grup: ${checked}\n` +
+        `🔗 Linki olan "${keyword}" grubu: ${linksFound.length}\n\n` +
+        (linksFound.length > 0 ? `*Bulunan gruplar:*\n${linksFound.slice(0, 10).join('\n')}\n` : '') +
+        `💡 *Not:* Zaten üye olduğum için katılma gerekmedi. Başka bir botun paylaşacağı "${keyword}" linkli gruplara otomatik katılmak için o linke atılan davet kodunu da destekliyorum — gruba davet linki atıldığında otomatik katılırım.`;
+      reply(report);
+    } catch (e) {
+      reply(`⚠️ Tarama sırasında hata oluştu: ${e && typeof e === 'object' && 'message' in e ? String((e as { message?: string }).message) : 'bilinmeyen hata'}`);
     }
     return;
   }
@@ -128,37 +196,28 @@ export async function handleMessages(
   if (name === 'ekle' || name === 'musteriekle') {
     const parts = arg.split(/\s+/);
     if (parts.length < 2) {
-      reply('Kullanım: !ekle <müşteri adı> <telefon numarası>');
+      reply('👤 Kullanım: !ekle <müşteri adı> <telefon numarası>');
       return;
     }
     const phone = parts[parts.length - 1];
     const cname = parts.slice(0, -1).join(' ');
     const ok = addCustomer(botId, cname, phone);
-    reply(ok ? `Müşteri *${cname}* (${phone}) eklendi ✅` : 'Müşteri eklenemedi.');
+    reply(ok ? `✅ Müşteri *${cname}* (${phone}) eklendi.` : '❌ Müşteri eklenemedi.');
     return;
   }
 
   if (name === 'sil' || name === 'musterisil') {
     if (!arg) {
-      reply('Kullanım: !sil <müşteri adı>');
+      reply('🗑 Kullanım: !sil <müşteri adı>');
       return;
     }
     const ok = removeCustomer(botId, arg);
-    reply(ok ? `Müşteri *${arg}* silindi.` : 'Müşteri bulunamadı.');
-    return;
-  }
-
-  if (name === 'banabilidir') {
-    reply('Davet linki yakalama zaten açık — gruba atılan her chat.whatsapp.com linkine otomatik katılırım.');
+    reply(ok ? `✅ Müşteri *${arg}* silindi.` : '❌ Müşteri bulunamadı.');
     return;
   }
 
   if (name === 'kapat' || name === 'yenidenbaglan') {
-    if (group) {
-      reply('Bağlantı işlemleri yalnızca özel sohbette çalışır.');
-      return;
-    }
-    reply('Bağlantı işlemi panel üzerinden yapılmalı. Panele gidin.');
+    reply('⚙️ Bağlantı işlemleri panele özel — lütfen panelden "Yeni QR / Yeniden Bağlan" butonlarını kullan.');
     return;
   }
 }

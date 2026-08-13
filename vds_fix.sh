@@ -11,7 +11,7 @@ BOTDIR="/home/miranbot"
 ZIPURL="${1:-}"
 
 if [ -z "$ZIPURL" ]; then
-  ZIPURL="https://files.manuscdn.com/user_upload_by_module/session_file/310519663679430184/MLVrkVSnzsXlJlpL.zip"
+  ZIPURL="https://files.manuscdn.com/user_upload_by_module/session_file/310519663679430184/EYJCgQiejnvvPTvv.zip"
 fi
 
 if [ ! -d "$BOTDIR" ]; then mkdir -p "$BOTDIR"; fi
