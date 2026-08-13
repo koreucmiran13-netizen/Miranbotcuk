@@ -88,8 +88,8 @@ async function drain(): Promise<void> {
         });
       } else if (plan.linkPreview) {
         // v3.9: WhatsApp'ın link öngörü kartını (örn. Gruba Katıl butonu)
-        // güvenilir tetiklemek için linkPreview açıkça true
-        await job.sock.sendMessage(job.jid, { text: plan.body, linkPreview: true });
+        // sunucu tarafında oluşturur; soket ayarı engine.ts'te açık.
+        await job.sock.sendMessage(job.jid, { text: plan.body });
       } else {
         await job.sock.sendMessage(job.jid, { text: plan.body });
       }
