@@ -74,7 +74,8 @@ echo "[MiranBot] Node.js $(node -v)"
 # --- 6. Bağımlılıklar + panel ---
 echo "[MiranBot] Bağımlılıklar kuruluyor..."
 npm install --no-audit --no-fund
-echo "[MiranBot] Panel derleniyor..."
+echo "[MiranBot] Eski derleme önbelleği siliniyor..."
+rm -rf dist .vite-cache
 npm run build >/dev/null 2>&1 || npm run build
 
 # --- 7. Ortam dosyaları (ilk kurulumda örnekler; var olanları koru) ---
