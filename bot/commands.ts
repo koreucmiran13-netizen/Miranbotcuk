@@ -153,30 +153,33 @@ export async function handleMessages(
       reply(`🛑 *Otomatik yayın durduruldu.*`);
       return;
     }
-    // Arg'dan sayıyı çıkar: "30", "30 dakika", "her 30 dk" hepsi çalışır
-    const m = arg.match(/(\d+)/);
-    const mins = m ? parseInt(m[1], 10) : 0;
-    if (mins < 1) {
-      reply(`📢 *Kullanım:* !otogönder <dakika>\n\nÖrn: !otogönder 30 — Paneldeki tüm duyuruları her 30 dakikada bir tüm gruplara gönderir.\nDurdurmak için: !otogönder kapat`);
+    // Yeni format: !otogönder <mesaj> <dakika>
+    // Örn: !otogönder merhaba 5 → her 5 dakikada "merhaba" yazar
+    // Dakika = arg'ın SON kelimesi (sayı), geri kalan = mesaj
+    const parts = arg.trim().split(/\s+/);
+    if (parts.length < 2) {
+      reply(`📢 *Kullanım:* !otogönder <mesaj> <dakika>\n\nÖrn: !otogönder merhaba 5\n→ Her 5 dakikada bir "merhaba" mesajı tüm gruplara gönderilir.\n\nDurdurmak için: !otogönder kapat`);
       return;
     }
+    const mins = parseInt(parts[parts.length - 1], 10);
+    if (!mins || mins < 1) {
+      reply(`📢 *Kullanım:* !otogönder <mesaj> <dakika>\n\nÖrn: !otogönder merhaba 5\n→ Her 5 dakikada bir "merhaba" mesajı tüm gruplara gönderilir.\nDurdurmak için: !otogönder kapat`);
+      return;
+    }
+    const messageText = parts.slice(0, parts.length - 1).join(' ');
     try {
-      // Duyuru aralıklarını belirtilen dakikaya güncelle (yoksa 1 adet varsayılan duyuru)
+      // Duyurulara yeni duyuru ekle ve yayını başlat
       const c = loadConfig();
-      const botCfg = c.bots[botId] || (c.bots[botId] = { announcements: [], running: false });
-      if (botCfg.announcements.length === 0) {
-        botCfg.announcements.push({
-          id: String(Date.now()),
-          text: '*MiranBot duyuru sistemi aktif.*\nDuyuru metnini panelden ekleyin veya buraya yazın: !otogönder ayarla <metin>',
-          intervalMin: mins,
-        });
-      } else {
-        for (const ann of botCfg.announcements) ann.intervalMin = mins;
-      }
+      if (!c.bots[botId]) c.bots[botId] = { announcements: [], running: false };
+      c.bots[botId].announcements.push({
+        id: String(Date.now()),
+        text: messageText,
+        intervalMin: mins,
+      });
       saveConfig(c);
       startBroadcast(botId);
-      console.log(`[CMD] [${botId}] Otogonder başlatıldı: ${mins} dk, duyuru sayısı: ${botCfg.announcements.length}, config.running: ${c.bots[botId]?.running}`);
-      reply(`✅ *Otomatik yayın başlatıldı!*\n\n⏰ Her *${mins} dakikada* bir, paneldeki duyurular *tüm gruplara* gönderilecek.\n\nDurdurmak için: !otogönder kapat`);
+      console.log(`[CMD] [${botId}] Otogonder: "${messageText}" her ${mins} dk — duyuru sayısı: ${c.bots[botId].announcements.length}`);
+      reply(`✅ *Otomatik yayın başlatıldı!*\n\n⏰ Her *${mins} dakikada* bir:\n_${messageText}_\nmesajı *tüm gruplara* gönderilecek.\n\nDurdurmak için: !otogönder kapat`);
     } catch (e) {
       console.error(`[CMD] [${botId}] Otogonder hatası:`, e);
       reply(`⚠️ Yayın başlatılamadı: ${e && typeof e === 'object' && 'message' in e ? String((e as { message?: string }).message) : 'bilinmeyen hata'}. Paneldeki "Yayını Başlat" butonunu da kullanabilirsin.`);
