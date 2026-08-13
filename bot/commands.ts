@@ -121,32 +121,40 @@ export async function handleMessages(
     return;
   }
 
-  if (name === 'otogönder' || name === 'otogonder') {
-    if (arg === 'kapat' || arg === 'stop' || arg === 'durdur') {
+  if (name === 'otogönder' || name === 'otogonder' || name === 'otomatik') {
+    if (arg === 'kapat' || arg === 'stop' || arg === 'durdur' || arg === 'off') {
       stopBroadcast(botId);
       reply(`🛑 *Otomatik yayın durduruldu.*`);
       return;
     }
-    const mins = parseInt(arg, 10);
-    if (!mins || mins < 1) {
+    // Arg'dan sayıyı çıkar: "30", "30 dakika", "her 30 dk" hepsi çalışır
+    const m = arg.match(/(\d+)/);
+    const mins = m ? parseInt(m[1], 10) : 0;
+    if (mins < 1) {
       reply(`📢 *Kullanım:* !otogönder <dakika>\n\nÖrn: !otogönder 30 — Paneldeki tüm duyuruları her 30 dakikada bir tüm gruplara gönderir.\nDurdurmak için: !otogönder kapat`);
       return;
     }
-    // Duyuru aralıklarını belirtilen dakikaya güncelle (yoksa 1 adet varsayılan duyuru)
-    const c = loadConfig();
-    const botCfg = c.bots[botId] || (c.bots[botId] = { announcements: [], running: false });
-    if (botCfg.announcements.length === 0) {
-      botCfg.announcements.push({
-        id: String(Date.now()),
-        text: '*MiranBot duyuru sistemi aktif.*\nDuyuru metnini panelden ekleyin veya buraya yazın: !otogönder ayarla <metin>',
-        intervalMin: mins,
-      });
-    } else {
-      for (const ann of botCfg.announcements) ann.intervalMin = mins;
+    try {
+      // Duyuru aralıklarını belirtilen dakikaya güncelle (yoksa 1 adet varsayılan duyuru)
+      const c = loadConfig();
+      const botCfg = c.bots[botId] || (c.bots[botId] = { announcements: [], running: false });
+      if (botCfg.announcements.length === 0) {
+        botCfg.announcements.push({
+          id: String(Date.now()),
+          text: '*MiranBot duyuru sistemi aktif.*\nDuyuru metnini panelden ekleyin veya buraya yazın: !otogönder ayarla <metin>',
+          intervalMin: mins,
+        });
+      } else {
+        for (const ann of botCfg.announcements) ann.intervalMin = mins;
+      }
+      saveConfig(c);
+      startBroadcast(botId);
+      console.log(`[CMD] [${botId}] Otogonder başlatıldı: ${mins} dk, duyuru sayısı: ${botCfg.announcements.length}, config.running: ${c.bots[botId]?.running}`);
+      reply(`✅ *Otomatik yayın başlatıldı!*\n\n⏰ Her *${mins} dakikada* bir, paneldeki duyurular *tüm gruplara* gönderilecek.\n\nDurdurmak için: !otogönder kapat`);
+    } catch (e) {
+      console.error(`[CMD] [${botId}] Otogonder hatası:`, e);
+      reply(`⚠️ Yayın başlatılamadı: ${e && typeof e === 'object' && 'message' in e ? String((e as { message?: string }).message) : 'bilinmeyen hata'}. Paneldeki "Yayını Başlat" butonunu da kullanabilirsin.`);
     }
-    saveConfig(c);
-    startBroadcast(botId);
-    reply(`✅ *Otomatik yayın başlatıldı!*\n\n⏰ Her *${mins} dakikada* bir, paneldeki duyurular *tüm gruplara* gönderilecek.\n\nDurdurmak için: !otogönder kapat`);
     return;
   }
 

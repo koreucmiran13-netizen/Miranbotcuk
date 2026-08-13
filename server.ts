@@ -77,7 +77,8 @@ app.get('/api/version', (_req, res) => {
     const hash = crypto.createHash('md5').update(raw).digest('hex').slice(0, 12);
     const hasAdminburasi = /name !== 'adminburasi'/.test(raw);
     const hasYardimCheck = /name === 'yardım'/.test(raw);
-    res.json({ code: 'miranbot-v3.3', hash, hasAdminburasiGate: hasAdminburasi, hasYardim: hasYardimCheck });
+    const hasOtogonder = /name === 'otogönder'/.test(raw);
+    res.json({ code: 'miranbot-v3.4', hash, gate: hasAdminburasi, yardim: hasYardimCheck, otogonder: hasOtogonder });
   } catch {
     res.json({ code: 'unknown' });
   }
