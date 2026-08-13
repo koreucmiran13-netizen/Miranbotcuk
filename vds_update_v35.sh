@@ -10,7 +10,7 @@
 BOTDIR="/home/miranbot"
 REPO="koreucmiran13-netizen/Miranbotcuk"
 RAW="https://raw.githubusercontent.com/${REPO}/main"
-EXPECTED_HASH="6f3b8c9d2a1e"
+EXPECTED_HASH="7273e0d48397"
 
 mkdir -p "$BOTDIR" "$BOTDIR/bot" && cd "$BOTDIR"
 
