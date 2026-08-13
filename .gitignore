@@ -7,6 +7,7 @@ coverage/
 !.env.example
 auth_info_baileys
 auth_info_baileys_*
+sessions/
 uploads
 bot_config.json
 dist/
