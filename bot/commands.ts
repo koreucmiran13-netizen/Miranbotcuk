@@ -1,5 +1,5 @@
 /**
- * MiranBot v3.8 — Komut İşleyicisi
+ * MiranBot v3.9 — Komut İşleyicisi
  * - Admin komutları SADECE !adminburasi ile belirlenen gruptan çalışır
  *   (özel sohbet ve diğer gruplar admin komutlarını GÖRMEZDEN gelir)
  * - Bilgi komutları (!durum, !yardım) her yerden çalışır
@@ -44,7 +44,7 @@ export async function handleMessages(
   const arg = rest.join(' ');
 
   // v3.7: Bilinmeyen komut adıysa sessiz geç (normal mesajda ! işareti olabilir)
-  const KNOWN = ['adminburasi', 'admingrubu', 'otogönder', 'otogonder', 'otomatik', 'katıl', 'katil', 'yardım', 'yardim', 'help', 'komutlar', 'komut', 'durum', 'botdurum', 'ekle', 'musteriekle', 'sil', 'musterisil', 'kapat', 'yenidenbaglan', 'yeniden'];
+  const KNOWN = ['adminburasi', 'admingrubu', 'otogönder', 'otogonder', 'otomatik', 'katıl', 'katil', 'yardım', 'yardim', 'help', 'komutlar', 'komut', 'durum', 'botdurum', 'ekle', 'musteriekle', 'sil', 'musterisil', 'kapat', 'yenidenbaglan', 'yeniden', 'durdur', 'stop'];
   const isKnownCmd = KNOWN.includes(name);
 
   // -------------------------------------------------------------------
@@ -128,6 +128,7 @@ export async function handleMessages(
         `📢 !otogönder <mesaj> <dakika> — Otomatik yayın başlat (örn: !otogönder merhaba 5)\n` +
         `🛑 !otogönder kapat — Otomatik yayını durdur\n` +
         `🔗 !katıl — Grupları tara, link adı geçenlere otomatik katıl\n` +
+        `🛑 !durdur — Tüm otomatik yayınları ve zamanlayıcıları durdur\n` +
         `👑 !adminburasi — Bu grubu admin grubu yap (sadece admin grubunda)\n` +
         `👤 !ekle <isim> <telefon> — Müşteri ekle (sadece admin grubunda)\n` +
         `🗑 !sil <isim> — Müşteri sil (sadece admin grubunda)\n\n` +
@@ -283,6 +284,13 @@ export async function handleMessages(
 
   if (name === 'kapat' || name === 'yenidenbaglan') {
     reply('⚙️ Bağlantı işlemleri panele özel — lütfen panelden "Yeni QR / Yeniden Bağlan" butonlarını kullan.');
+    return;
+  }
+
+  // v3.9: !durdur — tüm aktif yayınları ve zamanlayıcıları durdur
+  if (name === 'durdur' || name === 'stop') {
+    stopBroadcast(botId);
+    reply(`🛑 *Tüm otomatik yayınlar ve zamanlayıcılar durduruldu.*\n\n💡 Yeni bir yayın başlatmak için: !otogönder <mesaj> <dakika>`);
     return;
   }
 }

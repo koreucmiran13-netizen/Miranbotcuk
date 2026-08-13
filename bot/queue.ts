@@ -87,8 +87,9 @@ async function drain(): Promise<void> {
           caption: plan.body || undefined,
         });
       } else if (plan.linkPreview) {
-        // WhatsApp linki otomatik öngörüli yapar; ek işleme gerek yok
-        await job.sock.sendMessage(job.jid, { text: plan.body });
+        // v3.9: WhatsApp'ın link öngörü kartını (örn. Gruba Katıl butonu)
+        // güvenilir tetiklemek için linkPreview açıkça true
+        await job.sock.sendMessage(job.jid, { text: plan.body, linkPreview: true });
       } else {
         await job.sock.sendMessage(job.jid, { text: plan.body });
       }

@@ -171,7 +171,7 @@ async function doConnect(id: string, state: BotState): Promise<void> {
     browser: Browsers.macOS('Chrome'),
     syncFullHistory: false,
     shouldSyncHistoryMessage: () => false,
-    generateHighQualityLinkPreview: false,
+    generateHighQualityLinkPreview: true, // v3.9: chat.whatsapp.com öngörü kartı (Gruba Katıl butonu) için
     markOnlineOnConnect: false,
     emitOwnEvents: false,
     fireInitQueries: false,
