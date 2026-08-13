@@ -70,6 +70,19 @@ app.get('/api/status', (req, res) => {
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', version: 'miranbot-v3' }));
 
+// Çalışan komut dosyasının hash'i — hangi sürümün YAYINDA olduğunu uzaktan doğrulamak için
+app.get('/api/version', (_req, res) => {
+  try {
+    const raw = fs.readFileSync(path.join(process.cwd(), 'bot', 'commands.ts'), 'utf-8');
+    const hash = crypto.createHash('md5').update(raw).digest('hex').slice(0, 12);
+    const hasAdminburasi = /name !== 'adminburasi'/.test(raw);
+    const hasYardimCheck = /name === 'yardım'/.test(raw);
+    res.json({ code: 'miranbot-v3.3', hash, hasAdminburasiGate: hasAdminburasi, hasYardim: hasYardimCheck });
+  } catch {
+    res.json({ code: 'unknown' });
+  }
+});
+
 // ---------------------------------------------------------------
 // QR / Bağlan / Kapat
 // ---------------------------------------------------------------
