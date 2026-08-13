@@ -11,7 +11,7 @@ import crypto from 'crypto';
 import { getState, getStateAll, publicStates, connect, wipeSession, hasSession, startWatchdog } from './bot/engine';
 import { handleMessages } from './bot/commands';
 import { startBroadcast, stopBroadcast, isBroadcastRunning, stopAll } from './bot/broadcast';
-import { loadConfig, addAnnouncement, removeAnnouncement, setRunning, getConfig } from './config';
+import { loadConfig, addAnnouncement, removeAnnouncement, setRunning, getConfig, getOrCreateConfig } from './config';
 import { listCustomers, addCustomer, removeCustomer } from './users';
 
 const app = express();
@@ -77,6 +77,7 @@ app.post('/api/qr', async (req, res) => {
   if (!authed(req)) return res.status(401).json({ error: 'unauthorized' });
   const { botId } = req.body as { botId?: string };
   if (!botId) return res.json({ success: false });
+  getOrCreateConfig(botId); // yeni botlar otomatik kayıt
   const state = getState(botId);
   // QR yalnızca bekleme/bağlı değilse yeni akış aç; zaten QR bekliyorsa mevcut QR'ı döndür
   if (state.status === 'waiting_for_qr') {

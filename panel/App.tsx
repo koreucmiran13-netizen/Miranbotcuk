@@ -25,23 +25,139 @@ interface Customer {
   addedAt: string;
 }
 
-const API = () => `${window.location.origin}`;
+type TabId = 'bot' | 'ann' | 'cust';
 
 // ---------------------------------------------------------------------------
 // Yardımcılar
 // ---------------------------------------------------------------------------
-function statusLabel(s: string): { label: string; color: string } {
+function statusMeta(s: string): { label: string; color: string; glow: string } {
   switch (s) {
     case 'connected':
-      return { label: 'Çevrimiçi', color: '#22c55e' };
+      return { label: 'Çevrimiçi', color: '#10b981', glow: 'rgba(16,185,129,0.35)' };
     case 'connecting':
-      return { label: 'Bağlanıyor', color: '#eab308' };
+      return { label: 'Bağlanıyor', color: '#f59e0b', glow: 'rgba(245,158,11,0.35)' };
     case 'waiting_for_qr':
-      return { label: 'QR Bekleniyor', color: '#f59e0b' };
+      return { label: 'QR Bekleniyor', color: '#f59e0b', glow: 'rgba(245,158,11,0.35)' };
     default:
-      return { label: 'Kapalı', color: '#ef4444' };
+      return { label: 'Kapalı', color: '#ef4444', glow: 'rgba(239,68,68,0.35)' };
   }
 }
+
+function cx(...cls: (string | false | undefined)[]): string {
+  return cls.filter(Boolean).join(' ');
+}
+
+// ---------------------------------------------------------------------------
+// İkonlar (SVG)
+// ---------------------------------------------------------------------------
+const Icon = {
+  Bot: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="10" rx="2" /><circle cx="12" cy="5" r="2" /><path d="M12 7v4" /><line x1="8" y1="16" x2="8" y2="16" /><line x1="16" y1="16" x2="16" y2="16" />
+    </svg>
+  ),
+  Megaphone: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m3 11 18-5v12L3 13v-2z" /><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+    </svg>
+  ),
+  Users: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  Qr: () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><path d="M14 14h3v3h-3z" /><path d="M21 14h-3v3" /><path d="M14 21h7" /><path d="M21 21v-7" />
+    </svg>
+  ),
+  Plug: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 2v6" /><path d="M15 2v6" /><path d="M12 17v5" /><path d="M5 8h14" /><path d="M6 11V8h12v3a6 6 0 1 1-12 0Z" />
+    </svg>
+  ),
+  LogOut: () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  ),
+  Play: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+  ),
+  Pause: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zm8 0h4v16h-4z" /></svg>
+  ),
+  Plus: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  ),
+  Trash: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" /><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  ),
+  Refresh: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 16h5v5" />
+    </svg>
+  ),
+  Power: () => (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
+    </svg>
+  ),
+  Check: () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  ),
+  Clock: () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+    </svg>
+  ),
+};
+
+// ---------------------------------------------------------------------------
+// CSS-in-JS temaları
+// ---------------------------------------------------------------------------
+const C = {
+  bg: '#07090f',
+  surface: '#10131c',
+  surface2: '#161a26',
+  line: '#22283a',
+  lineSoft: '#1c2132',
+  text: '#e8ecf4',
+  textDim: '#8b93a7',
+  textMute: '#5b6478',
+  accent: '#6366f1',
+  accent2: '#818cf8',
+  green: '#10b981',
+  greenSoft: 'rgba(16,185,129,0.12)',
+  amber: '#f59e0b',
+  amberSoft: 'rgba(245,158,11,0.12)',
+  red: '#ef4444',
+  redSoft: 'rgba(239,68,68,0.12)',
+  wa: '#25d366',
+};
+
+const css = `
+* { box-sizing: border-box; }
+body { margin: 0; background: ${C.bg}; }
+@keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+@keyframes fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.fade-in { animation: fade-in .3s ease-out; }
+.pulse-dot { animation: pulse-dot 1.6s infinite; }
+.qr-frame {
+  background: #ffffff; border-radius: 16px; padding: 16px;
+  box-shadow: 0 8px 32px rgba(99,102,241,.18), 0 2px 8px rgba(0,0,0,.4);
+}
+.btn-press:active { transform: scale(.97); }
+input:focus, textarea:focus { border-color: ${C.accent} !important; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: ${C.line}; border-radius: 4px; }
+`;
 
 // ---------------------------------------------------------------------------
 // Uygulama
@@ -50,9 +166,12 @@ export default function App() {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('mb_token'));
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
+  const [loginErr, setLoginErr] = useState('');
   const [bots, setBots] = useState<BotInfo[]>([]);
   const [selectedId, setSelectedId] = useState<string>('bot1');
+  const [addBotId, setAddBotId] = useState('');
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<TabId>('bot');
 
   // Duyuru formu
   const [annText, setAnnText] = useState('');
@@ -66,15 +185,19 @@ export default function App() {
   const [custName, setCustName] = useState('');
   const [custPhone, setCustPhone] = useState('');
 
-  // Hata mesajları
-  const [note, setNote] = useState('');
+  // İşlem durumları
+  const [toast, setToast] = useState<{ type: 'ok' | 'err'; msg: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [qrLoading, setQrLoading] = useState(false);
 
-  // ---------------------------------------------------------------------------
   const authed = Boolean(token);
+  const notify = (type: 'ok' | 'err', msg: string) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   async function api<T>(path: string, opts?: RequestInit): Promise<T> {
-    const url = `${API()}${path}`;
-    const res = await fetch(url, {
+    const res = await fetch(`${window.location.origin}${path}`, {
       ...opts,
       headers: { 'Content-Type': 'application/json', ...(opts?.headers || {}) },
     });
@@ -88,12 +211,7 @@ export default function App() {
       if (data?.bots) {
         setBots(data.bots);
         const sel = data.bots.find((b) => b.id === selectedId) || data.bots[0];
-        if (sel) {
-          setSelectedId(sel.id);
-          const cfg = (window as any).__cfg || null;
-          // config'i ayrı endpoint olmadan state'ten al: announcements + running
-          // (durum tek kaynak — status response'a announcements eklenebilir; burada basitleştirme)
-        }
+        if (sel && sel.id !== selectedId) setSelectedId(sel.id);
       }
     } catch {}
     setLoading(false);
@@ -116,26 +234,26 @@ export default function App() {
   useEffect(() => {
     if (!authed) return;
     refresh();
-    const t = setInterval(refresh, 4000);
-    return () => clearInterval(t);
-  }, [authed]);
-
-  useEffect(() => {
-    if (!authed) return;
     fetchExtras();
-  }, [selectedId, authed]);
+    const t = setInterval(() => { refresh(); fetchExtras(); }, 4000);
+    return () => clearInterval(t);
+  }, [authed, selectedId]);
 
   // ---------------------------------------------------------------------------
   const doLogin = async () => {
-    const r = await api<{ success: boolean; token?: string }>('/api/login', {
-      method: 'POST',
-      body: JSON.stringify({ user: loginUser, pass: loginPass }),
-    });
-    if (r.success && r.token) {
-      localStorage.setItem('mb_token', r.token);
-      setToken(r.token);
-    } else {
-      setNote('Giriş başarısız');
+    try {
+      const r = await api<{ success: boolean; token?: string }>('/api/login', {
+        method: 'POST',
+        body: JSON.stringify({ user: loginUser, pass: loginPass }),
+      });
+      if (r.success && r.token) {
+        localStorage.setItem('mb_token', r.token);
+        setToken(r.token);
+      } else {
+        setLoginErr('Kullanıcı adı veya şifre hatalı');
+      }
+    } catch {
+      setLoginErr('Sunucuya bağlanılamadı');
     }
   };
 
@@ -145,35 +263,54 @@ export default function App() {
   };
 
   const showQR = async () => {
-    setNote('QR alınıyor...');
-    const r = await api<{ success: boolean; qr?: string | null }>(`/api/qr?token=${token}`, {
-      method: 'POST',
-      body: JSON.stringify({ botId: selectedId }),
-    });
-    setNote(r.success ? 'QR kodu tarayın → WhatsApp > Ayarlar > Bağlı Cihazlar > Cihaz Bağla' : 'QR alınamadı');
+    if (qrLoading) return;
+    setQrLoading(true);
+    try {
+      const r = await api<{ success: boolean; qr?: string | null }>(`/api/qr?token=${token}`, {
+        method: 'POST',
+        body: JSON.stringify({ botId: selectedId }),
+      });
+      if (r.success) {
+        notify('ok', 'QR kodu oluşturuldu — WhatsApp ile tarayın');
+        refresh();
+      } else {
+        notify('err', 'QR kodu oluşturulamadı');
+      }
+    } catch {
+      notify('err', 'Sunucuya bağlanılamadı');
+    } finally {
+      setQrLoading(false);
+    }
   };
 
   const doReconnect = async () => {
-    await api(`/api/reconnect?token=${token}`, {
-      method: 'POST',
-      body: JSON.stringify({ botId: selectedId }),
-    });
-    setNote('Yeniden bağlanma isteği gönderildi. Bot birkaç saniye içinde bağlanacaktır.');
+    setBusy(true);
+    try {
+      await api(`/api/reconnect?token=${token}`, {
+        method: 'POST',
+        body: JSON.stringify({ botId: selectedId }),
+      });
+      notify('ok', 'Bağlantı isteği gönderildi — birkaç saniye içinde bağlanır');
+    } catch {
+      notify('err', 'Sunucuya bağlanılamadı');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const doLogoutBot = async () => {
-    if (!confirm('Emin misiniz? Bu, botunuzu listeden çıkarır ve yeni QR gerektirir.')) return;
+    if (!confirm('Emin misiniz? Bu işlem oturumu siler ve yeni QR gerektirir.')) return;
     await api(`/api/logout?token=${token}`, {
       method: 'POST',
       body: JSON.stringify({ botId: selectedId }),
     });
-    setNote('Bot kapatıldı.');
+    notify('ok', 'Bot oturumu kapatıldı ve silindi');
     refresh();
   };
 
   const addAnn = async () => {
     if (!annText.trim()) {
-      setNote('Duyuru metni boş olamaz');
+      notify('err', 'Duyuru metni boş olamaz');
       return;
     }
     const r = await api<{ success: boolean }>(`/api/announcement/add?token=${token}`, {
@@ -189,8 +326,10 @@ export default function App() {
       setAnnText('');
       setAnnImage('');
       setAnnInterval(60);
-      setNote('Duyuru eklendi');
+      notify('ok', 'Duyuru eklendi');
       fetchExtras();
+    } else {
+      notify('err', 'Duyuru eklenemedi');
     }
   };
 
@@ -209,11 +348,14 @@ export default function App() {
       body: JSON.stringify({ botId: selectedId }),
     });
     setRunning(!running);
-    setNote(running ? 'Duyurular durduruldu' : 'Duyurular başlatıldı');
+    notify('ok', running ? 'Duyurular durduruldu' : 'Duyurular başlatıldı');
   };
 
   const addCust = async () => {
-    if (!custName || !custPhone) return;
+    if (!custName || !custPhone) {
+      notify('err', 'Ad ve telefon gereklidir');
+      return;
+    }
     const r = await api<{ success: boolean }>(`/api/customer/add?token=${token}`, {
       method: 'POST',
       body: JSON.stringify({ botId: selectedId, name: custName, phone: custPhone }),
@@ -221,9 +363,10 @@ export default function App() {
     if (r.success) {
       setCustName('');
       setCustPhone('');
+      notify('ok', 'Müşteri eklendi');
       fetchExtras();
     } else {
-      setNote('Müşteri eklenemedi (aynı isimde müşteri olabilir)');
+      notify('err', 'Müşteri eklenemedi (muhtemelen aynı isimde müşteri var)');
     }
   };
 
@@ -236,171 +379,344 @@ export default function App() {
   };
 
   // ---------------------------------------------------------------------------
+  // GİRİŞ EKRANI
+  // ---------------------------------------------------------------------------
   if (!authed) {
     return (
-      <div style={styles.center}>
-        <div style={styles.card}>
-          <h2 style={{ marginTop: 0 }}>MiranBot v3</h2>
-          <p style={{ color: '#9ca3af' }}>Panel girişi</p>
-          <input style={styles.input} placeholder="Kullanıcı adı" value={loginUser} onChange={(e) => setLoginUser(e.target.value)} />
+      <div style={S.centerWrap}>
+        <style>{css}</style>
+        <div className="fade-in" style={S.loginCard}>
+          <div style={S.loginLogo}>
+            <div style={S.logoCircle}>
+              <Icon.Bot />
+            </div>
+          </div>
+          <h1 style={S.loginTitle}>MiranBot</h1>
+          <p style={S.loginSub}>v3 · Yönetim Paneli</p>
           <input
-            style={styles.input}
+            style={S.input}
+            placeholder="Kullanıcı adı"
+            autoComplete="username"
+            value={loginUser}
+            onChange={(e) => { setLoginUser(e.target.value); setLoginErr(''); }}
+            onKeyDown={(e) => e.key === 'Enter' && loginPass && doLogin()}
+          />
+          <input
+            style={S.input}
             placeholder="Şifre"
             type="password"
+            autoComplete="current-password"
             value={loginPass}
-            onChange={(e) => setLoginPass(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && doLogin()}
+            onChange={(e) => { setLoginPass(e.target.value); setLoginErr(''); }}
+            onKeyDown={(e) => e.key === 'Enter' && loginUser && doLogin()}
           />
-          <button style={styles.btn} onClick={doLogin}>Giriş Yap</button>
-          {note && <div style={styles.note}>{note}</div>}
+          {loginErr && <div style={S.errBox}>{loginErr}</div>}
+          <button className="btn-press" style={S.primaryBtn} onClick={doLogin}>Giriş Yap</button>
+          <div style={S.loginFoot}>7/24 WhatsApp duyuru platformu</div>
         </div>
       </div>
     );
   }
 
-  const bot = bots.find((b) => b.id === selectedId);
-  const sl = bot ? statusLabel(bot.status) : statusLabel('disconnected');
+  // Bot listesi boşsa bile panel kullanılabilir kalsın: varsayılan bot1
+  const effectiveId = bots.length > 0 ? selectedId : 'bot1';
+  const bot = bots.find((b) => b.id === effectiveId) || null;
+  const sm = bot ? statusMeta(bot.status) : statusMeta('disconnected');
+  const onlineCount = bots.filter((b) => b.status === 'connected').length;
 
+  const tabs: { id: TabId; label: string; icon: JSX.Element }[] = [
+    { id: 'bot', label: 'Bot Durumu', icon: <Icon.Bot /> },
+    { id: 'ann', label: 'Duyurular', icon: <Icon.Megaphone /> },
+    { id: 'cust', label: 'Müşteriler', icon: <Icon.Users /> },
+  ];
+
+  // ---------------------------------------------------------------------------
+  // ANA EKRAN
+  // ---------------------------------------------------------------------------
   return (
-    <div style={styles.wrap}>
-      <header style={styles.header}>
-        <div>
-          <h1 style={styles.title}>MiranBot v3</h1>
-          <span style={styles.sub}>Miran47 · Yönetici</span>
+    <div style={S.wrap}>
+      <style>{css}</style>
+
+      {/* Üst bar */}
+      <header style={S.header}>
+        <div style={S.headerLeft}>
+          <div style={S.logoCircleSmall}>
+            <Icon.Bot />
+          </div>
+          <div>
+            <div style={S.headerTitle}>MiranBot <span style={{ color: C.accent2, fontSize: 11, fontWeight: 600, letterSpacing: 1 }}>v3</span></div>
+            <div style={S.headerSub}>Yönetim Paneli</div>
+          </div>
         </div>
-        <button style={styles.smallBtn} onClick={doLogout}>Çıkış</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={S.headerPill}>
+            <span className={cx('pulse-dot', bot?.status === 'connected' && 'pulse-dot')} style={{ width: 8, height: 8, borderRadius: '50%', background: sm.color, boxShadow: `0 0 8px ${sm.glow}` }} />
+            <span style={{ color: C.textDim, fontSize: 12 }}>{onlineCount} / {bots.length} bot çevrimiçi</span>
+          </div>
+          <button className="btn-press" style={S.iconBtn} onClick={doLogout} title="Çıkış">
+            <Icon.LogOut />
+          </button>
+        </div>
       </header>
 
-      <div style={styles.grid}>
-        {/* Sol: botlar */}
-        <div style={styles.card}>
-          <h3 style={styles.h3}>BOTLAR</h3>
+      {/* Toast */}
+      {toast && (
+        <div className="fade-in" style={toast.type === 'ok' ? S.toast : { ...S.toast, background: C.redSoft, border: `1px solid ${C.red}`, color: '#fca5a5' }}>
+          {toast.type === 'ok' && <Icon.Check />} {toast.msg}
+        </div>
+      )}
+
+      <div style={S.body}>
+        {/* Sol menü */}
+        <nav style={S.nav}>
+          <div style={S.navLabel}>MENÜ</div>
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              className="btn-press"
+              style={tab === t.id ? S.navItemActive : S.navItem}
+              onClick={() => setTab(t.id)}
+            >
+              {t.icon}
+              <span>{t.label}</span>
+            </button>
+          ))}
+          <div style={S.navSep} />
+          <div style={S.navLabel}>BOTLAR</div>
+          {bots.length === 0 && <div style={S.emptyNav}>Henüz bot yok — aşağıdan ekleyin</div>}
           {bots.map((b) => {
-            const s = statusLabel(b.status);
+            const s = statusMeta(b.status);
             const active = b.id === selectedId;
             return (
-              <div
+              <button
                 key={b.id}
+                className="btn-press"
+                style={active ? S.botItemActive : S.botItem}
                 onClick={() => setSelectedId(b.id)}
-                style={{
-                  ...styles.botItem,
-                  background: active ? '#1f2937' : 'transparent',
-                  border: active ? '1px solid #374151' : '1px solid transparent',
-                }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.color }} />
-                  <strong>{b.id}</strong>
-                </div>
-                <span style={{ color: s.color, fontSize: 12 }}>{s.label} · {b.groupCount} grup</span>
-              </div>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, boxShadow: `0 0 6px ${s.glow}` }} />
+                <span style={{ flex: 1, textAlign: 'left' }}>{b.id}</span>
+                <span style={{ fontSize: 10, color: s.color }}>{b.groupCount} grp</span>
+              </button>
             );
           })}
-
-          {bot && (
-            <div style={{ marginTop: 16, padding: 12, background: '#111827', borderRadius: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <strong>{bot.id}</strong>
-                <span style={{ color: sl.color, fontSize: 12 }}>{sl.label}</span>
-              </div>
-              <p style={{ fontSize: 12, color: '#9ca3af', margin: '6px 0' }}>{bot.activity}</p>
-              {bot.lastDisconnectReason && (
-                <p style={{ fontSize: 11, color: '#f87171', margin: '4px 0' }}>Son kopma: {bot.lastDisconnectReason}</p>
-              )}
-              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                <button style={styles.smallBtn} onClick={doReconnect}>Yeniden Bağlan</button>
-                <button style={styles.qrBtn} onClick={showQR}>Yeni QR</button>
-              </div>
-              {bot.status === 'waiting_for_qr' && bot.qr && (
-                <div style={{ marginTop: 10 }}>
-                  <img src={bot.qr} alt="QR" style={{ width: '100%', borderRadius: 6 }} />
-                  <p style={{ fontSize: 11, color: '#9ca3af', textAlign: 'center' }}>
-                    WhatsApp → Ayarlar → Bağlı Cihazlar → Cihaz Bağla ile tarayın
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Sağ: içerik */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Duyurular */}
-          <div style={styles.card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ ...styles.h3, margin: 0 }}>Duyurular</h3>
-              <button
-                style={running ? styles.stopBtn : styles.startBtn}
-                onClick={toggleBroadcast}
-                disabled={!announcements.length}
-              >
-                {running ? '⏸ Durdur' : '▶ Başlat'}
-              </button>
-            </div>
-
-            <textarea
-              style={styles.textarea}
-              placeholder="Mesaj (link veya görsel URL'si içerebilir, akıllı formatta gönderilir)"
-              value={annText}
-              onChange={(e) => setAnnText(e.target.value)}
+          <div style={{ display: 'flex', gap: 6, padding: '8px 10px' }}>
+            <input
+              style={{ ...S.input, fontSize: 11, padding: '7px 9px' }}
+              placeholder="Yeni bot id (örn: bot2)"
+              value={addBotId}
+              onChange={(e) => setAddBotId(e.target.value)}
             />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <input
-                style={styles.input}
-                placeholder="Aralık (dakika)"
-                type="number"
-                min={1}
-                value={annInterval}
-                onChange={(e) => setAnnInterval(Number(e.target.value))}
-              />
-              <input
-                style={styles.input}
-                placeholder="Görsel URL (isteğe bağlı)"
-                value={annImage}
-                onChange={(e) => setAnnImage(e.target.value)}
-              />
-            </div>
-            <button style={{ ...styles.btn, marginTop: 10 }} onClick={addAnn}>+ Duyuru Ekle</button>
+            <button
+              className="btn-press"
+              style={{ ...S.btnGhost, padding: '7px 10px', fontSize: 11 }}
+              onClick={async () => {
+                const id = addBotId.trim().replace(/[^a-zA-Z0-9_-]/g, '');
+                if (!id) { notify('err', 'Geçerli bir bot id girin (harf/rakam)'); return; }
+                // QR çağrısı bot config'ini oluşturur
+                const r = await api<{ success: boolean; qr?: string | null }>(`/api/qr?token=${token}`, {
+                  method: 'POST',
+                  body: JSON.stringify({ botId: id }),
+                });
+                if (r.success) { notify('ok', `Bot "${id}" eklendi ve QR oluşturuldu`); refresh(); }
+                else notify('err', 'Bot eklenemedi');
+              }}
+            >
+              <Icon.Plus />
+            </button>
+          </div>
+          <div style={S.navFoot}>MiranBot v3 · stabil motor</div>
+        </nav>
 
-            <div style={{ marginTop: 12 }}>
-              {announcements.length === 0 && <p style={styles.empty}>Henüz duyuru yok.</p>}
-              {announcements.map((a) => (
-                <div key={a.id} style={styles.annItem}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13 }}>{a.text.slice(0, 80)}{a.text.length > 80 ? '...' : ''}</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>
-                      Her {a.intervalMin} dk{a.imageUrl ? ' · görselli' : ''}
+        {/* İçerik */}
+        <main style={S.main}>
+          {tab === 'bot' && (
+            <div className="fade-in" key="bot">
+              {/* Durum kartı */}
+              <div style={S.card}>
+                <div style={S.cardHead}>
+                  <div>
+                    <div style={S.cardTitle}>{bot?.id || 'Seçili bot yok'}</div>
+                    <div style={{ ...S.statusPill, background: sm.color + '1a', color: sm.color, border: `1px solid ${sm.color}44` }}>
+                      <span className={cx(bot?.status === 'connected' && 'pulse-dot', 'pulse-dot')} style={{ width: 8, height: 8, borderRadius: '50%', background: sm.color, boxShadow: `0 0 8px ${sm.glow}` }} />
+                      {sm.label}
                     </div>
                   </div>
-                  <button style={styles.delBtn} onClick={() => removeAnn(a.id)}>✕</button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Müşteriler */}
-          <div style={styles.card}>
-            <h3 style={styles.h3}>Müşteriler ({customers.length})</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <input style={styles.input} placeholder="Müşteri adı" value={custName} onChange={(e) => setCustName(e.target.value)} />
-              <input style={styles.input} placeholder="Telefon" value={custPhone} onChange={(e) => setCustPhone(e.target.value)} />
-            </div>
-            <button style={{ ...styles.btn, marginTop: 10 }} onClick={addCust}>+ Müşteri Ekle</button>
-            <div style={{ marginTop: 12 }}>
-              {customers.length === 0 && <p style={styles.empty}>Henüz müşteri yok.</p>}
-              {customers.map((c) => (
-                <div key={c.name + c.phone} style={styles.annItem}>
-                  <div style={{ flex: 1 }}>
-                    <strong>{c.name}</strong> <span style={{ fontSize: 12, color: '#9ca3af' }}>{c.phone}</span>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn-press" style={S.btnGhost} onClick={showQR} disabled={qrLoading}>
+                      <Icon.Qr /> {qrLoading ? 'Yükleniyor...' : 'Yeni QR'}
+                    </button>
+                    <button className="btn-press" style={S.btnGhost} onClick={doReconnect} disabled={busy}>
+                      <Icon.Plug /> Yeniden Bağlan
+                    </button>
+                    <button className="btn-press" style={S.btnDangerGhost} onClick={doLogoutBot}>
+                      <Icon.Power /> Oturumu Kapat
+                    </button>
                   </div>
-                  <button style={styles.delBtn} onClick={() => removeCust(c.name)}>✕</button>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          {note && <div style={styles.note}>{note}</div>}
-        </div>
+                <div style={S.statsRow}>
+                  <div style={S.stat}>
+                    <div style={S.statNum}>{bot?.groupCount ?? 0}</div>
+                    <div style={S.statLabel}>Grup</div>
+                  </div>
+                  <div style={S.statSep} />
+                  <div style={S.stat}>
+                    <div style={{ ...S.statNum, color: sm.color }}>{sm.label}</div>
+                    <div style={S.statLabel}>Durum</div>
+                  </div>
+                  <div style={S.statSep} />
+                  <div style={S.stat}>
+                    <div style={S.statNum}>{announcements.length}</div>
+                    <div style={S.statLabel}>Duyuru</div>
+                  </div>
+                  <div style={S.statSep} />
+                  <div style={S.stat}>
+                    <div style={{ ...S.statNum, color: running ? C.green : C.textMute }}>{running ? 'Aktif' : 'Durdurulmuş'}</div>
+                    <div style={S.statLabel}>Yayın</div>
+                  </div>
+                </div>
+
+                {bot?.activity && <div style={S.activity}>Son aktivite: {bot.activity}</div>}
+                {bot?.lastDisconnectReason && (
+                  <div style={S.disconnectNote}>Son bağlantı kesilme nedeni: {bot.lastDisconnectReason}</div>
+                )}
+              </div>
+
+              {/* QR kartı */}
+              <div style={{ ...S.card, marginTop: 16 }}>
+                <div style={S.cardHead}>
+                  <div style={S.cardTitle}>QR Kodu ile Bağlan</div>
+                    <button className="btn-press" style={{ ...S.btnGhost, fontSize: 12, padding: '7px 12px' }} onClick={showQR} disabled={qrLoading}>
+                      <Icon.Refresh /> QR'ı Yenile
+                    </button>
+                </div>
+                {bot && bot.status === 'waiting_for_qr' && bot.qr ? (
+                  <div style={S.qrArea}>
+                    <div className="qr-frame">
+                      <img src={bot.qr} alt="WhatsApp QR" style={{ width: 280, height: 280 }} />
+                    </div>
+                    <div style={S.qrSteps}>
+                      <div style={S.qrStep}><span style={S.stepNo}>1</span> WhatsApp'ı açın</div>
+                      <div style={S.qrStep}><span style={S.stepNo}>2</span> <b>Ayarlar → Bağlı Cihazlar</b> yolunu izleyin</div>
+                      <div style={S.qrStep}><span style={S.stepNo}>3</span> <b>Cihaz Bağla</b> ile bu kodu tarayın</div>
+                    </div>
+                    <div style={S.qrHint}>QR 60 saniyede bir süresi dolabilir — dolarsa yenile butonuna basın.</div>
+                  </div>
+                ) : bot && bot.status === 'connected' ? (
+                  <div style={S.qrConnected}>
+                    <Icon.Check /> <span>Botunuz bağlı ve hazır. Gruplara komut gönderebilir, duyurularınızı başlatabilirsiniz.</span>
+                  </div>
+                ) : (
+                  <div style={S.qrEmpty}>
+                    <div style={{ opacity: 0.35 }}><Icon.Qr /></div>
+                    <div style={{ fontWeight: 600, margin: '10px 0 4px' }}>Henüz QR oluşturulmadı</div>
+                    <div style={{ fontSize: 12, color: C.textMute, maxWidth: 340, textAlign: 'center' }}>
+                      Sağdaki <b>Yeni QR</b> butonuna basarak WhatsApp bağlantısını başlatın.
+                    </div>
+                    <button className="btn-press" style={{ ...S.primaryBtn, width: 'auto', padding: '10px 26px', marginTop: 14 }} onClick={showQR} disabled={qrLoading}>
+                      <Icon.Qr /> {qrLoading ? 'Oluşturuluyor...' : 'Yeni QR Oluştur'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {tab === 'ann' && (
+            <div className="fade-in" key="ann">
+              <div style={S.card}>
+                <div style={S.cardHead}>
+                  <div style={S.cardTitle}>Duyurular</div>
+                  <button
+                    className="btn-press"
+                    style={running ? S.btnDanger : S.btnPrimary}
+                    onClick={toggleBroadcast}
+                    disabled={!announcements.length}
+                  >
+                    {running ? <><Icon.Pause /> Yayını Durdur</> : <><Icon.Play /> Yayını Başlat</>}
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={S.fieldLabel}>Mesaj metni</div>
+                    <textarea
+                      style={S.textarea}
+                      rows={3}
+                      placeholder="Duyuru mesajı... Link veya görsel URL'si içerebilir; akıllı format ile otomatik gönderilir."
+                      value={annText}
+                      onChange={(e) => setAnnText(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr', gap: 10 }}>
+                  <div>
+                    <div style={S.fieldLabel}>Tekrar aralığı (dakika)</div>
+                    <input style={S.input} type="number" min={1} value={annInterval} onChange={(e) => setAnnInterval(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <div style={S.fieldLabel}>Görsel URL'si (isteğe bağlı)</div>
+                    <input style={S.input} placeholder="https://...jpg / .png" value={annImage} onChange={(e) => setAnnImage(e.target.value)} />
+                  </div>
+                </div>
+                <button className="btn-press" style={{ ...S.btnPrimary, marginTop: 12, width: 'auto', padding: '10px 22px' }} onClick={addAnn}>
+                  <Icon.Plus /> Duyuru Ekle
+                </button>
+
+                <div style={S.divider} />
+                <div>
+                  {announcements.length === 0 && <div style={S.emptyState}>Henüz duyuru yok — yukarıdan ilk duyurunuzu ekleyin.</div>}
+                  {announcements.map((a) => (
+                    <div key={a.id} style={S.listItem}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.text}</div>
+                        <div style={{ fontSize: 11, color: C.textMute, display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                          <Icon.Clock /> Her {a.intervalMin} dakikada bir{a.imageUrl ? ' · görselli gönderim' : ''}
+                        </div>
+                      </div>
+                      <button className="btn-press" style={S.delBtn} onClick={() => removeAnn(a.id)}><Icon.Trash /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === 'cust' && (
+            <div className="fade-in" key="cust">
+              <div style={S.card}>
+                <div style={S.cardHead}>
+                  <div style={S.cardTitle}>Müşteriler <span style={{ color: C.textMute, fontSize: 12, fontWeight: 500 }}>({customers.length})</span></div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 10, alignItems: 'end' }}>
+                  <div>
+                    <div style={S.fieldLabel}>Müşteri adı</div>
+                    <input style={S.input} placeholder="Örn: Ali Grubu" value={custName} onChange={(e) => setCustName(e.target.value)} />
+                  </div>
+                  <div>
+                    <div style={S.fieldLabel}>Telefon</div>
+                    <input style={S.input} placeholder="+90 5xx xxx xx xx" value={custPhone} onChange={(e) => setCustPhone(e.target.value)} />
+                  </div>
+                  <button className="btn-press" style={{ ...S.btnPrimary, height: 40 }} onClick={addCust}><Icon.Plus /></button>
+                </div>
+                <div style={S.divider} />
+                <div>
+                  {customers.length === 0 && <div style={S.emptyState}>Henüz müşteri yok.</div>}
+                  {customers.map((c) => (
+                    <div key={c.name + c.phone} style={S.listItem}>
+                      <div style={{ flex: 1 }}>
+                        <strong style={{ color: C.text }}>{c.name}</strong>
+                        <span style={{ fontSize: 12, color: C.textMute, marginLeft: 8 }}>{c.phone}</span>
+                      </div>
+                      <button className="btn-press" style={S.delBtn} onClick={() => removeCust(c.name)}><Icon.Trash /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );
@@ -409,72 +725,175 @@ export default function App() {
 // ---------------------------------------------------------------------------
 // Stiller
 // ---------------------------------------------------------------------------
-const styles: Record<string, React.CSSProperties> = {
-  center: { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#0b1120' },
-  card: { background: '#111827', border: '1px solid #1f2937', borderRadius: 12, padding: 18 },
+const S: Record<string, React.CSSProperties> = {
+  wrap: { minHeight: '100vh', background: C.bg, color: C.text, display: 'flex', flexDirection: 'column' },
+
+  // üst bar
+  header: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '12px 20px', background: C.surface, borderBottom: `1px solid ${C.line}`,
+  },
+  headerLeft: { display: 'flex', alignItems: 'center', gap: 12 },
+  headerTitle: { fontSize: 15, fontWeight: 800, margin: 0, letterSpacing: -0.2 },
+  headerSub: { fontSize: 10, color: C.textMute, letterSpacing: 1.5, textTransform: 'uppercase' },
+  headerPill: {
+    display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px',
+    background: C.surface2, border: `1px solid ${C.line}`, borderRadius: 999,
+  },
+  logoCircle: {
+    width: 64, height: 64, borderRadius: 20, background: `linear-gradient(135deg, ${C.accent}, #8b5cf6)`,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', marginBottom: 14,
+  },
+  logoCircleSmall: {
+    width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${C.accent}, #8b5cf6)`,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+  },
+  iconBtn: {
+    background: C.surface2, border: `1px solid ${C.line}`, borderRadius: 10, padding: 8,
+    color: C.textDim, cursor: 'pointer', display: 'flex',
+  },
+
+  // toast
+  toast: {
+    position: 'fixed', top: 18, left: '50%', transform: 'translateX(-50%)', zIndex: 50,
+    padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+    background: C.greenSoft, border: `1px solid ${C.green}`, color: '#6ee7b7',
+    display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 8px 24px rgba(0,0,0,.4)',
+  },
+
+  // gövde
+  body: { display: 'grid', gridTemplateColumns: '230px 1fr', gap: 18, padding: 18, alignItems: 'start', flex: 1 },
+  nav: {
+    background: C.surface, border: `1px solid ${C.line}`, borderRadius: 14, padding: 14,
+    display: 'flex', flexDirection: 'column', position: 'sticky', top: 18,
+  },
+  navLabel: { fontSize: 10, color: C.textMute, letterSpacing: 2, fontWeight: 600, padding: '8px 10px 4px' },
+  navItem: {
+    width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px',
+    background: 'transparent', border: `1px solid transparent`, borderRadius: 9, color: C.textDim,
+    fontSize: 13, cursor: 'pointer', textAlign: 'left',
+  },
+  navItemActive: {
+    width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px',
+    background: `${C.accent}1f`, border: `1px solid ${C.accent}55`, borderRadius: 9, color: C.accent2,
+    fontSize: 13, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
+  },
+  navSep: { height: 1, background: C.line, margin: '8px 0' },
+  emptyNav: { fontSize: 11, color: C.textMute, padding: '8px 10px' },
+  botItem: {
+    width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+    background: 'transparent', border: `1px solid transparent`, borderRadius: 9,
+    color: C.textDim, fontSize: 12, cursor: 'pointer', textAlign: 'left',
+  },
+  botItemActive: {
+    width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+    background: C.surface2, border: `1px solid ${C.line}`, borderRadius: 9,
+    color: C.text, fontSize: 12, fontWeight: 600, cursor: 'pointer', textAlign: 'left',
+  },
+  navFoot: { fontSize: 10, color: C.textMute, padding: '14px 10px 2px' },
+  main: { minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 },
+
+  // kartlar
+  card: { background: C.surface, border: `1px solid ${C.line}`, borderRadius: 14, padding: 18 },
+  cardHead: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' },
+  cardTitle: { fontSize: 15, fontWeight: 700, margin: 0, letterSpacing: -0.2 },
+  divider: { height: 1, background: C.line, margin: '14px 0' },
+
+  // durum
+  statusPill: {
+    display: 'inline-flex', alignItems: 'center', gap: 7, borderRadius: 999, padding: '4px 12px',
+    fontSize: 11, fontWeight: 700, marginTop: 6,
+  },
+  statsRow: {
+    display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', background: C.surface2,
+    border: `1px solid ${C.line}`, borderRadius: 12, padding: '14px 6px', marginTop: 4,
+  },
+  stat: { textAlign: 'center' },
+  statNum: { fontSize: 16, fontWeight: 800, color: C.text, lineHeight: 1.2 },
+  statLabel: { fontSize: 10, color: C.textMute, marginTop: 3, textTransform: 'uppercase', letterSpacing: 1 },
+  statSep: { width: 1, background: C.line, margin: '0 4px' },
+  activity: { fontSize: 11, color: C.textMute, marginTop: 10 },
+  disconnectNote: {
+    fontSize: 11, color: '#fca5a5', marginTop: 6, background: C.redSoft,
+    border: `1px solid ${C.red}33`, borderRadius: 8, padding: '6px 10px',
+  },
+
+  // butonlar
+  primaryBtn: {
+    background: `linear-gradient(135deg, ${C.accent}, #8b5cf6)`, color: '#fff', border: 'none',
+    borderRadius: 10, padding: '12px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+    boxShadow: `0 4px 16px ${C.accent}44`, width: '100%',
+  },
+  btnPrimary: {
+    background: `linear-gradient(135deg, ${C.accent}, #8b5cf6)`, color: '#fff', border: 'none',
+    borderRadius: 9, padding: '9px 16px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+    boxShadow: `0 3px 12px ${C.accent}33`, display: 'flex', alignItems: 'center', gap: 7,
+  },
+  btnDanger: {
+    background: `linear-gradient(135deg, ${C.red}, #dc2626)`, color: '#fff', border: 'none',
+    borderRadius: 9, padding: '9px 16px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: 7,
+  },
+  btnGhost: {
+    background: C.surface2, color: C.textDim, border: `1px solid ${C.line}`, borderRadius: 9,
+    padding: '9px 14px', fontSize: 12.5, fontWeight: 500, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: 7,
+  },
+  btnDangerGhost: {
+    background: 'transparent', color: '#f87171', border: `1px solid ${C.red}44`, borderRadius: 9,
+    padding: '9px 14px', fontSize: 12.5, fontWeight: 500, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', gap: 7,
+  },
+  delBtn: {
+    background: 'transparent', border: `1px solid transparent`, borderRadius: 8, padding: 7,
+    color: C.textMute, cursor: 'pointer', display: 'flex',
+  },
+
+  // inputlar
   input: {
-    background: '#0b1120',
-    border: '1px solid #374151',
-    borderRadius: 6,
-    padding: '10px 12px',
-    color: '#f3f4f6',
-    fontSize: 14,
-    outline: 'none',
+    width: '100%', background: C.surface2, border: `1px solid ${C.line}`, borderRadius: 9,
+    padding: '10px 12px', color: C.text, fontSize: 13, outline: 'none',
   },
   textarea: {
-    background: '#0b1120',
-    border: '1px solid #374151',
-    borderRadius: 6,
-    padding: '10px 12px',
-    color: '#f3f4f6',
-    fontSize: 14,
-    minHeight: 90,
-    resize: 'vertical',
-    outline: 'none',
-    width: '100%',
-    boxSizing: 'border-box',
+    width: '100%', background: C.surface2, border: `1px solid ${C.line}`, borderRadius: 9,
+    padding: '10px 12px', color: C.text, fontSize: 13, outline: 'none', resize: 'vertical',
   },
-  btn: {
-    background: '#16a34a',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6,
-    padding: '10px 16px',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-    width: '100%',
+  fieldLabel: { fontSize: 11, color: C.textMute, fontWeight: 600, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 1 },
+
+  // liste
+  listItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 2px', borderBottom: `1px solid ${C.lineSoft}` },
+  emptyState: { color: C.textMute, fontSize: 12.5, textAlign: 'center', padding: '14px 0' },
+
+  // QR
+  qrArea: { display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center' },
+  qrSteps: { display: 'flex', flexDirection: 'column', gap: 10, minWidth: 230 },
+  qrStep: { display: 'flex', alignItems: 'center', gap: 9, fontSize: 13, color: C.textDim },
+  stepNo: {
+    width: 22, height: 22, borderRadius: 7, background: `${C.accent}22`, border: `1px solid ${C.accent}55`,
+    color: C.accent2, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
   },
-  smallBtn: {
-    background: '#374151',
-    color: '#f3f4f6',
-    border: 'none',
-    borderRadius: 6,
-    padding: '7px 14px',
-    fontSize: 13,
-    cursor: 'pointer',
+  qrHint: { width: '100%', textAlign: 'center', fontSize: 11, color: C.textMute, marginTop: 14 },
+  qrConnected: {
+    display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center', padding: 26,
+    background: C.greenSoft, border: `1px solid ${C.green}33`, borderRadius: 12, color: '#6ee7b7', fontSize: 13,
   },
-  qrBtn: {
-    background: '#eab308',
-    color: '#111827',
-    border: 'none',
-    borderRadius: 6,
-    padding: '7px 14px',
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: 'pointer',
+  qrEmpty: { textAlign: 'center', padding: '22px 0 10px' },
+
+  // giriş
+  centerWrap: {
+    display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh',
+    background: `radial-gradient(ellipse at 50% 0%, #151a2e 0%, ${C.bg} 55%)`,
   },
-  startBtn: { background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 13, cursor: 'pointer' },
-  stopBtn: { background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 13, cursor: 'pointer' },
-  delBtn: { background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 14 },
-  note: { marginTop: 10, padding: 8, background: '#1f2937', borderRadius: 6, fontSize: 12, color: '#e5e7eb' },
-  empty: { color: '#6b7280', fontSize: 12, textAlign: 'center' },
-  annItem: { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px solid #1f2937', fontSize: 13 },
-  title: { margin: 0, fontSize: 18, color: '#f3f4f6' },
-  sub: { fontSize: 12, color: '#9ca3af' },
-  h3: { color: '#f3f4f6', fontSize: 13, letterSpacing: 1, textTransform: 'uppercase' as const, margin: 0 },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: '#0b1120', borderBottom: '1px solid #1f2937' },
-  wrap: { minHeight: '100vh', background: '#0b1120', color: '#f3f4f6', fontFamily: 'system-ui, sans-serif' },
-  grid: { display: 'grid', gridTemplateColumns: '280px 1fr', gap: 16, padding: 16, alignItems: 'start' },
-  botItem: { padding: '10px 12px', marginBottom: 6, borderRadius: 8, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 },
+  loginCard: {
+    width: 340, background: C.surface, border: `1px solid ${C.line}`, borderRadius: 18,
+    padding: 30, textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,.5)',
+  },
+  loginTitle: { margin: 0, fontSize: 24, fontWeight: 800, letterSpacing: -0.5 },
+  loginSub: { margin: '4px 0 22px', fontSize: 12, color: C.textMute, letterSpacing: 1 },
+  errBox: {
+    margin: '10px 0', padding: '8px 12px', borderRadius: 9, fontSize: 12, color: '#fca5a5',
+    background: C.redSoft, border: `1px solid ${C.red}33`,
+  },
+  loginFoot: { fontSize: 10, color: C.textMute, marginTop: 16 },
 };
