@@ -31,7 +31,8 @@ export async function handleMessages(
   // Davet linki yakalama (tüm gruplardan) — v3.5: rate-limit ile akıllı
   // -------------------------------------------------------------------
   if (group && text) {
-    const invite = text.match(/chat\.whatsapp\.com\/([A-Za-z0-9]{20,})/);
+    // v3.7: SADECE chat.whatsapp.com/davetKodu formatı (kanal linkleri hariç)
+    const invite = text.match(/chat\.whatsapp\.com\/(?!channel\/)([A-Za-z0-9]{20,})/);
     if (invite) {
       const code = invite[1];
       const sock = state.sock;
@@ -65,13 +66,21 @@ export async function handleMessages(
   }
 
   // -------------------------------------------------------------------
-  // Komut algılama
+  // Komut algılama — v3.7: ! işareti mesajın başında olmak zorunda değil;
+  // metnin içindeki ilk ! komut başlangıcı sayılır (emoji/şifreleme önekleri uyumlu)
   // -------------------------------------------------------------------
   const cmd = text?.trim().toLowerCase();
-  if (!cmd?.startsWith('!')) return;
+  if (!cmd) return;
+  const bangIdx = cmd.indexOf('!');
+  if (bangIdx === -1) return;
+  const cmdBody = cmd.slice(bangIdx);
 
-  const [name, ...rest] = cmd.slice(1).split(/\s+/);
+  const [name, ...rest] = cmdBody.slice(1).split(/\s+/);
   const arg = rest.join(' ');
+
+  // v3.7: Bilinmeyen komut adıysa sessiz geç (normal mesajda ! işareti olabilir)
+  const KNOWN = ['adminburasi', 'admingrubu', 'otogönder', 'otogonder', 'otomatik', 'katıl', 'katil', 'yardım', 'yardim', 'help', 'komutlar', 'komut', 'durum', 'botdurum', 'ekle', 'musteriekle', 'sil', 'musterisil', 'kapat', 'yenidenbaglan', 'yeniden'];
+  if (!KNOWN.includes(name)) return;
 
   // v3.3: Komutlar SADECE admin grubundan çalışır.
   // Admin grubu DIŞINDAKİ her yer (özel sohbet + diğer gruplar) TÜM komutları
@@ -110,7 +119,7 @@ export async function handleMessages(
         `📖 *Kullanılabilir Komutlar*\n\n` +
         `📡 !durum — Botun durumu ve grup sayısı\n` +
         `🤖 !yardım — Bu yardım menüsü\n` +
-        `📢 !otogönder <dakika> — Duyuruları tüm gruplara otomatik gönder (örn: !otogönder 30)\n` +
+        `📢 !otogönder <mesaj> <dakika> — Otomatik yayın başlat (örn: !otogönder merhaba 5)\n` +
         `🛑 !otogönder kapat — Otomatik yayını durdur\n` +
         `🔗 !katıl — Grupları tara, link adı geçenlere otomatik katıl\n` +
         `👑 !adminburasi — Bu grubu admin grubu yap (sadece admin grubunda)\n` +
@@ -156,17 +165,27 @@ export async function handleMessages(
     // Yeni format: !otogönder <mesaj> <dakika>
     // Örn: !otogönder merhaba 5 → her 5 dakikada "merhaba" yazar
     // Dakika = arg'ın SON kelimesi (sayı), geri kalan = mesaj
-    const parts = arg.trim().split(/\s+/);
-    if (parts.length < 2) {
+    const clean = arg.replace(/[_*`~]/g, '').trim(); // WhatsApp biçim karakterlerini temizle
+    if (!clean) {
       reply(`📢 *Kullanım:* !otogönder <mesaj> <dakika>\n\nÖrn: !otogönder merhaba 5\n→ Her 5 dakikada bir "merhaba" mesajı tüm gruplara gönderilir.\n\nDurdurmak için: !otogönder kapat`);
       return;
     }
-    const mins = parseInt(parts[parts.length - 1], 10);
-    if (!mins || mins < 1) {
+    // Dakika = metindeki SON sayı; kalan kısım mesaj
+    const numMatch = clean.match(/\d+$/);
+    if (!numMatch) {
       reply(`📢 *Kullanım:* !otogönder <mesaj> <dakika>\n\nÖrn: !otogönder merhaba 5\n→ Her 5 dakikada bir "merhaba" mesajı tüm gruplara gönderilir.\nDurdurmak için: !otogönder kapat`);
       return;
     }
-    const messageText = parts.slice(0, parts.length - 1).join(' ');
+    const mins = parseInt(numMatch[0], 10);
+    if (mins < 1 || mins > 1440) {
+      reply(`📢 *Kullanım:* !otogönder <mesaj> <dakika>\n\nÖrn: !otogönder merhaba 5\n→ Her 5 dakikada bir "merhaba" mesajı tüm gruplara gönderilir.\nDurdurmak için: !otogönder kapat`);
+      return;
+    }
+    const messageText = clean.slice(0, clean.length - numMatch[0].length).trim();
+    if (!messageText) {
+      reply(`📢 *Kullanım:* !otogönder <mesaj> <dakika>\n\nÖrn: !otogönder merhaba 5\n→ Her 5 dakikada bir "merhaba" mesajı tüm gruplara gönderilir.\nDurdurmak için: !otogönder kapat`);
+      return;
+    }
     try {
       // Duyurulara yeni duyuru ekle ve yayını başlat
       const c = loadConfig();
