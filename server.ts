@@ -79,6 +79,7 @@ app.get('/api/version', (_req, res) => {
     const hasYardimCheck = /name === 'yardım'/.test(raw);
     const hasOtogonder = /name === 'otogönder'/.test(raw);
     const hasV38InviteFix = /group && !isKnownCmd/.test(raw);
+    const hasV310PreviewFix = /previewOptimize/.test(raw);
     let gitSha = 'yok';
     try {
       const gitDir = path.join(process.cwd(), '.git');
@@ -87,7 +88,7 @@ app.get('/api/version', (_req, res) => {
         if (!gitSha.startsWith('ref')) gitSha = fs.readFileSync(path.join(gitDir, gitSha), 'utf-8').trim();
       }
     } catch {}
-    res.json({ code: 'miranbot-v3.8', hash, gate: hasAdminburasi, yardim: hasYardimCheck, otogonder: hasOtogonder, v38invitefix: hasV38InviteFix, git: gitSha });
+    res.json({ code: 'miranbot-v3.10', hash, gate: hasAdminburasi, yardim: hasYardimCheck, otogonder: hasOtogonder, v38invitefix: hasV38InviteFix, v310previewfix: hasV310PreviewFix, git: gitSha });
   } catch {
     res.json({ code: 'unknown' });
   }

@@ -41,6 +41,32 @@ function extractUrl(text: string): string | null {
 }
 
 /**
+ * v3.10: Mesajı link-öngörü kartına uygun hale getir.
+ * - chat.whatsapp.com linkleri metnin SONUNA ayrı satırda taşınır
+ *   (WhatsApp yalnızca metnin sonunda tek başına duran davet linkleri
+ *   için "Gruba Katıl" öngörü kartı oluşturur)
+ * - Satır atlamaları ve metin AYNEN korunur
+ */
+function previewOptimize(text: string): { body: string; hasInvite: boolean } {
+  const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+  const inviteLinks: string[] = [];
+  const rest: string[] = [];
+  for (const line of lines) {
+    const m = line.match(/https?:\/\/[^\s)]+/gi);
+    if (m && m.some((u) => /chat\.whatsapp\.com\/(?!channel\/)/i.test(u))) {
+      inviteLinks.push(line);
+    } else {
+      rest.push(line);
+    }
+  }
+  if (inviteLinks.length === 0) return { body: text, hasInvite: false };
+  return {
+    body: [...rest, '', ...inviteLinks].join('\n').trim() + '\n',
+    hasInvite: true,
+  };
+}
+
+/**
  * Mesajı analiz eder ve en iyi gönderim planını döndürür.
  */
 export function smartPlan(text: string): {
@@ -81,17 +107,16 @@ async function drain(): Promise<void> {
     const job = queue.shift()!;
     try {
       const plan = smartPlan(job.text);
+      // v3.10: davet linklerini ayrı satırda sona taşı (öngörü kartı için)
+      const opt = previewOptimize(plan.body);
       if (plan.mediaUrl) {
         await job.sock.sendMessage(job.jid, {
           image: { url: plan.mediaUrl },
-          caption: plan.body || undefined,
+          caption: opt.body || undefined,
         });
-      } else if (plan.linkPreview) {
-        // v3.9: WhatsApp'ın link öngörü kartını (örn. Gruba Katıl butonu)
-        // sunucu tarafında oluşturur; soket ayarı engine.ts'te açık.
-        await job.sock.sendMessage(job.jid, { text: plan.body });
       } else {
-        await job.sock.sendMessage(job.jid, { text: plan.body });
+        // v3.9: generateHighQualityLinkPreview açık; sunucu link öngörüsünü oluşturur
+        await job.sock.sendMessage(job.jid, { text: opt.body });
       }
     } catch (e: any) {
       console.error('[QUEUE] Gönderim hatası:', job.jid, e?.message ?? e);

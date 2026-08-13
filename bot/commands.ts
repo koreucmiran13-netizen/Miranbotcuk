@@ -1,5 +1,5 @@
 /**
- * MiranBot v3.9 — Komut İşleyicisi
+ * MiranBot v3.10 — Komut İşleyicisi
  * - Admin komutları SADECE !adminburasi ile belirlenen gruptan çalışır
  *   (özel sohbet ve diğer gruplar admin komutlarını GÖRMEZDEN gelir)
  * - Bilgi komutları (!durum, !yardım) her yerden çalışır
@@ -7,6 +7,8 @@
  * - !katıl: tüm grupları tarar, adı "search" geçene katılır; zaten katılıysa sessiz
  * - v3.8: komut mesajlarındaki chat.whatsapp.com linkleri davet KODU sayılmaz;
  *   mesaj AYNEN duyuru metni olarak saklanır (büyük/küçük harf korunur)
+ * - v3.10: satır atlamaları korunur; davet linkleri duyuru metninin sonuna
+ *   ayrı satırda taşınır → WhatsApp "Gruba Katıl" öngörü kartı oluşturur
  */
 import type { WAMessage } from '@whiskeysockets/baileys';
 import { getState } from './engine';
@@ -173,7 +175,12 @@ export async function handleMessages(
     // Mesaj AYNEN korunur (büyük/küçük harf, link, emoji dahil);
     // yalnızca SONDAKİ sayı dakikayı verir. WhatsApp biçim karakterleri
     // (* _ ~) temizlenir çünkü mesaj zaten yeni atılacak, çifte biçimleme olur.
-    const clean = arg.replace(/[_*`~]/g, ' ').replace(/\s+/g, ' ').trim();
+    // v3.10: satır atlamaları KORUNUR; yalnızca WhatsApp biçim karakterleri
+    // temizlenir ve ardışık yatay boşluklar tek boşluğa indirgenir
+    const clean = arg
+      .replace(/[_*`~]/g, '')
+      .replace(/[ \t]+/g, ' ')
+      .trim();
     if (!clean) {
       reply(`📢 *Kullanım:* !otogönder <mesaj> <dakika>\n\nÖrn: !otogönder merhaba 5\n→ Her 5 dakikada bir "merhaba" mesajı tüm gruplara gönderilir.\n\nDurdurmak için: !otogönder kapat`);
       return;
