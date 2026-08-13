@@ -61,9 +61,13 @@ export async function handleMessages(
 
   // v3.3: Komutlar SADECE admin grubundan çalışır.
   // Admin grubu DIŞINDAKİ her yer (özel sohbet + diğer gruplar) TÜM komutları
-  // görmezden gelir — yalnızca davet linki avcılığı (üstte) aktif kalır.
+  // görmezden gider — yalnızca davet linki avcılığı (üstte) aktif kalır.
   // !adminburasi istisnası: her yerden yazılabilir, yazıldığı gruba geçiş yapar.
-  if (!isAdminGroup && name !== 'adminburasi' && name !== 'admingrubu') return;
+  console.log(`[CMD] [${botId}] Komut görüldü: "${cmd}" | from: ${from} | adminGroupId: ${config?.adminGroupId ?? '(yok)'} | isAdminGroup: ${isAdminGroup}`);
+  if (!isAdminGroup && name !== 'adminburasi' && name !== 'admingrubu') {
+    console.log(`[CMD] [${botId}] Komut görmezden gelindi (admin grubu dışı).`);
+    return;
+  }
 
   const sock = state.sock;
   const reply = (t: string) => {
