@@ -57,9 +57,9 @@ let timer = null; // yayın zamanlayıcısı
 /* ------------------------------------------------------------------ */
 /*  Yardımcılar                                                         */
 /* ------------------------------------------------------------------ */
-function isAdminGroup(chat) {
+function isAdminGroup(chatId) {
   if (!config.adminGroupId) return false;
-  return chat.id._serialized === config.adminGroupId;
+  return chatId === config.adminGroupId;
 }
 
 function splitMinute(args) {
@@ -143,20 +143,13 @@ client.on("message", async (msg) => {
   }
   if (!body) return;
 
-  console.log(`[MSG] Mesaj alındı: "${body.slice(0, 60)}"`);
-
-  let chat;
-  try {
-    chat = await msg.getChat();
-  } catch {
-    console.error("[MSG] getChat hatası, mesaj atlandı");
-    return;
-  }
+  const chatId = msg.from || msg.to || "";
+  console.log(`[MSG] Mesaj alındı: "${body.slice(0, 60)}" (${chatId})`);
 
   const isCmd = body.startsWith("!");
 
   // Komutlar SADECE admin grubundan
-  if (isCmd && !isAdminGroup(chat)) {
+  if (isCmd && !isAdminGroup(chatId)) {
     console.log(
       `[MSG] Komut dışı grupta görmezden gelindi: "${body.slice(0, 40)}"`,
     );
@@ -169,7 +162,7 @@ client.on("message", async (msg) => {
   try {
     switch (cmd) {
       case "!adminburasi": {
-        config.adminGroupId = chat.id._serialized;
+        config.adminGroupId = chatId;
         saveConfig();
         await msg.reply(
           "✅ Bu grup admin grubu olarak ayarlandı.\nKomutlar artık yalnızca bu gruptan dinleniyor.",
