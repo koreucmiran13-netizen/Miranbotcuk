@@ -5,168 +5,431 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>MiranBot — Yönetim Paneli</title>
 <style>
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #111827;
+    --card: #1a2236;
+    --card-border: #2a3550;
+    --green: #25D366;
+    --green-dim: #0d3320;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --radius: 16px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.3);
+  }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-         background:linear-gradient(135deg,#0b1020 0%,#101932 100%);
-         color:#e7ecf5; min-height:100vh; }
-  .wrap { max-width:960px; margin:0 auto; padding:28px 16px; }
-  header { display:flex; align-items:center; justify-content:space-between;
-           margin-bottom:24px; }
-  h1 { font-size:24px; }
-  h1 span { color:#25D366; }
-  .sub { color:#8a94ad; font-size:13px; margin-top:2px; }
-  .card { background:#131a2e; border:1px solid #1e2944; border-radius:14px;
-          padding:20px; margin-bottom:16px; }
-  .card h2 { font-size:13px; color:#8a94ad; font-weight:700; margin-bottom:14px;
-             text-transform:uppercase; letter-spacing:1px; }
-  .dot { width:10px; height:10px; border-radius:50%; display:inline-block;
-         margin-right:8px; }
-  .on { background:#25D366; box-shadow:0 0 10px #25D366; }
-  .off { background:#ff5a5f; }
-  #qr { max-width:260px; border-radius:12px; display:block; margin-top:10px; }
-  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  @media (max-width:640px){ .grid{grid-template-columns:1fr;} }
-  .stat { background:#0f1629; border:1px solid #1e2944; border-radius:10px;
-          padding:14px; text-align:center; }
-  .stat .num { font-size:26px; font-weight:800; color:#25D366; }
-  .stat .lbl { font-size:12px; color:#8a94ad; margin-top:4px; }
-  .gitem { display:flex; align-items:center; padding:10px 12px;
-           background:#0f1629; border:1px solid #1e2944; border-radius:10px;
-           margin-bottom:8px; cursor:pointer; transition:.15s; }
-  .gitem:hover { border-color:#25D366; }
-  .gitem.sel { border-color:#25D366; background:#0d2818; }
-  .gitem .box { width:20px; height:20px; border:2px solid #3b4767;
-                border-radius:5px; margin-right:12px; flex:0 0 20px;
-                display:flex; align-items:center; justify-content:center; }
-  .gitem.sel .box { background:#25D366; border-color:#25D366; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .bg-grid {
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    background-image: radial-gradient(circle at 1px 1px, rgba(37,211,102,0.03) 1px, transparent 0);
+    background-size: 40px 40px;
+    pointer-events: none; z-index:0;
+  }
+  .wrap { max-width:1000px; margin:0 auto; padding:20px 16px; position:relative; z-index:1; }
+
+  /* HEADER */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid var(--card-border);
+  }
+  .logo { display:flex; align-items:center; gap:12px; }
+  .logo-icon {
+    width:44px; height:44px; border-radius:12px;
+    background: linear-gradient(135deg, var(--green), #128C7E);
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+  }
+  .logo h1 { font-size:22px; font-weight:800; }
+  .logo h1 span { color:var(--green); }
+  .logo .sub { font-size:12px; color:var(--text3); margin-top:2px; }
+
+  /* STATUS BAR */
+  .status-bar {
+    display:flex; align-items:center; gap:10px;
+    background:var(--card); border:1px solid var(--card-border);
+    border-radius:12px; padding:10px 16px; margin-bottom:20px;
+  }
+  .status-dot {
+    width:10px; height:10px; border-radius:50%;
+    background:var(--red); flex-shrink:0;
+  }
+  .status-dot.on { background:var(--green); box-shadow:0 0 10px var(--green); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  .status-text { font-size:14px; font-weight:600; }
+  .status-badge {
+    margin-left:auto; font-size:11px; font-weight:700;
+    background:var(--green-dim); color:var(--green);
+    padding:4px 10px; border-radius:999px; text-transform:uppercase; letter-spacing:0.5px;
+  }
+  .status-badge.off { background:#3b1a1a; color:var(--red); }
+
+  /* CARDS */
+  .card {
+    background:var(--card); border:1px solid var(--card-border);
+    border-radius:var(--radius); padding:20px; margin-bottom:16px;
+    box-shadow:var(--shadow);
+  }
+  .card-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+  .card-icon {
+    width:36px; height:36px; border-radius:10px; display:flex;
+    align-items:center; justify-content:center; font-size:18px; flex-shrink:0;
+  }
+  .card-icon.green { background:var(--green-dim); }
+  .card-icon.blue { background:#1e3a5f; }
+  .card-icon.purple { background:#3b1f5e; }
+  .card-icon.orange { background:#5c3d1a; }
+  .card h2 { font-size:14px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:1px; }
+
+  /* STATS GRID */
+  .stats-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:20px; }
+  @media(max-width:640px){ .stats-grid{grid-template-columns:1fr;} }
+  .stat {
+    background:var(--bg2); border:1px solid var(--card-border);
+    border-radius:12px; padding:16px; text-align:center;
+  }
+  .stat .num { font-size:28px; font-weight:800; color:var(--green); }
+  .stat .lbl { font-size:11px; color:var(--text3); margin-top:4px; text-transform:uppercase; letter-spacing:0.5px; }
+
+  /* QR SECTION */
+  .qr-section { text-align:center; }
+  .qr-box {
+    background:#fff; border-radius:16px; padding:20px;
+    display:inline-block; margin:16px 0; position:relative;
+    box-shadow:0 0 40px rgba(37,211,102,0.1);
+  }
+  .qr-box img { width:220px; height:220px; border-radius:8px; }
+  .qr-placeholder {
+    width:220px; height:220px; border-radius:8px;
+    background:var(--bg2); border:2px dashed var(--card-border);
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:8px;
+  }
+  .qr-placeholder .spinner {
+    width:36px; height:36px; border:3px solid var(--card-border);
+    border-top-color:var(--green); border-radius:50%;
+    animation:spin 1s linear infinite;
+  }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .qr-placeholder span { font-size:12px; color:var(--text3); }
+  .qr-instructions { font-size:13px; color:var(--text2); margin-top:8px; line-height:1.6; }
+  .btn-row { display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
+
+  /* BUTTONS */
+  button {
+    background:var(--green); color:#062213; border:none;
+    border-radius:10px; padding:10px 18px; font-size:13px; font-weight:700;
+    cursor:pointer; transition:all .15s; display:inline-flex; align-items:center; gap:6px;
+  }
+  button:hover { filter:brightness(1.15); transform:translateY(-1px); }
+  button:active { transform:scale(0.97); }
+  button:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+  button.secondary { background:var(--bg2); color:var(--text); border:1px solid var(--card-border); }
+  button.secondary:hover { border-color:var(--green); }
+  button.danger { background:var(--red); color:#fff; }
+  button.danger:hover { background:#dc2626; }
+  button.lg { padding:12px 24px; font-size:14px; }
+
+  /* GROUP LIST */
+  .gitem {
+    display:flex; align-items:center; padding:12px 14px;
+    background:var(--bg2); border:1px solid var(--card-border);
+    border-radius:10px; margin-bottom:8px; cursor:pointer; transition:all .15s;
+  }
+  .gitem:hover { border-color:var(--green); background:#14202e; }
+  .gitem.sel { border-color:var(--green); background:var(--green-dim); }
+  .gitem .box {
+    width:22px; height:22px; border:2px solid var(--text3);
+    border-radius:6px; margin-right:12px; flex:0 0 22px;
+    display:flex; align-items:center; justify-content:center; transition:all .15s;
+  }
+  .gitem.sel .box { background:var(--green); border-color:var(--green); }
   .gitem.sel .box::after { content:"✓"; color:#062213; font-weight:800; font-size:13px; }
-  .gitem .gname { flex:1; font-size:14px; overflow:hidden;
-                  white-space:nowrap; text-overflow:ellipsis; }
-  .gitem .tag { font-size:10px; background:#1c2745; color:#8a94ad;
-                padding:3px 8px; border-radius:999px; margin-left:8px; }
-  .row { display:flex; gap:10px; margin-top:10px; }
-  input,textarea,select { background:#0f1629; border:1px solid #1e2944;
-                          color:#e7ecf5; border-radius:10px; padding:12px;
-                          font-size:14px; font-family:inherit; }
+  .gitem .gname { flex:1; font-size:14px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+  .gitem .tag {
+    font-size:10px; font-weight:700; background:var(--green-dim); color:var(--green);
+    padding:3px 8px; border-radius:999px; margin-left:8px; text-transform:uppercase;
+  }
+
+  /* FORM */
+  input, textarea, select {
+    background:var(--bg2); border:1px solid var(--card-border);
+    color:var(--text); border-radius:10px; padding:12px 14px;
+    font-size:14px; font-family:inherit; width:100%;
+  }
   textarea { resize:vertical; min-height:80px; }
-  input:focus,textarea:focus { outline:none; border-color:#25D366; }
-  button { background:#25D366; color:#062213; border:none; border-radius:10px;
-           padding:12px 20px; font-size:14px; font-weight:700; cursor:pointer;
-           transition:.15s; }
-  button:hover { filter:brightness(1.1); }
-  button.secondary { background:#1c2745; color:#e7ecf5; }
-  button.danger { background:#ff5a5f; color:#fff; }
-  table { width:100%; border-collapse:collapse; font-size:14px; }
-  th { text-align:left; color:#8a94ad; font-weight:700; padding:10px;
-       border-bottom:1px solid #1e2944; }
-  td { padding:10px; border-bottom:1px solid #141d34; vertical-align:middle; }
-  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
-           background:#25D366; color:#062213; font-weight:700; padding:12px 24px;
-           border-radius:999px; opacity:0; transition:.3s; pointer-events:none;
-           z-index:99; }
-  .toast.show { opacity:1; }
-  .empty { color:#5c6788; font-size:13px; padding:14px 0; text-align:center; }
+  input:focus, textarea:focus { outline:none; border-color:var(--green); }
+  .form-row { display:flex; gap:10px; align-items:flex-end; margin-top:12px; }
+  .form-row input[type="number"] { width:100px; flex-shrink:0; }
+  .form-group { flex:1; }
+  .form-group label { display:block; font-size:11px; color:var(--text3); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px; }
+
+  /* TABLE */
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; color:var(--text3); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--card-border); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; }
+  td { padding:10px; border-bottom:1px solid rgba(42,53,80,0.5); }
+  tr:last-child td { border-bottom:none; }
+  .empty { color:var(--text3); font-size:13px; padding:20px 0; text-align:center; }
+
+  /* TOAST */
+  .toast {
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(100px);
+    background:var(--green); color:#062213; font-weight:700; padding:12px 24px;
+    border-radius:999px; opacity:0; transition:all .3s; pointer-events:none; z-index:99;
+    font-size:13px;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast.error { background:var(--red); color:#fff; }
+
+  /* NAV TABS */
+  .tabs { display:flex; gap:4px; margin-bottom:20px; background:var(--bg2); border-radius:12px; padding:4px; }
+  .tab {
+    flex:1; padding:10px 14px; border-radius:8px; font-size:12px; font-weight:600;
+    color:var(--text3); cursor:pointer; transition:all .15s; text-align:center;
+  }
+  .tab.active { background:var(--green); color:#062213; }
+  .tab:hover:not(.active) { color:var(--text); background:rgba(37,211,102,0.05); }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
 </style>
 </head>
 <body>
+<div class="bg-grid"></div>
 <div class="wrap">
   <header>
-    <div>
-      <h1>🤖 MiranBot <span>Panel</span></h1>
-      <p class="sub">7/24 WhatsApp duyuru botu — whatsapp-web.js</p>
+    <div class="logo">
+      <div class="logo-icon">🤖</div>
+      <div>
+        <h1>Miran<span>Bot</span></h1>
+        <p class="sub">7/24 WhatsApp Yönetim Paneli</p>
+      </div>
     </div>
+    <div class="status-badge" id="versionBadge">v1.4</div>
   </header>
 
-  <!-- DURUM -->
-  <div class="card">
-    <h2>📡 Durum</h2>
-    <p id="statusLine" style="font-size:14px">Yükleniyor...</p>
-    <div class="grid" style="margin-top:14px">
-      <div class="stat"><div class="num" id="gCount">—</div><div class="lbl">Grup</div></div>
-      <div class="stat"><div class="num" id="aCount">0</div><div class="lbl">Aktif Duyuru</div></div>
+  <div class="status-bar">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-text" id="statusText">Yükleniyor...</span>
+    <span class="status-badge off" id="statusBadge">Bağlı Değil</span>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat"><div class="num" id="gCount">—</div><div class="lbl">Grup</div></div>
+    <div class="stat"><div class="num" id="aCount">0</div><div class="lbl">Aktif Duyuru</div></div>
+    <div class="stat"><div class="num" id="uptime">—</div><div class="lbl">Çalışma Süresi</div></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('connection')">🔗 Bağlantı</div>
+    <div class="tab" onclick="switchTab('groups')">👥 Gruplar</div>
+    <div class="tab" onclick="switchTab('broadcasts')">📢 Duyurular</div>
+    <div class="tab" onclick="switchTab('settings')">⚙️ Ayarlar</div>
+  </div>
+
+  <!-- TAB: CONNECTION -->
+  <div class="tab-content active" id="tab-connection">
+    <div class="card qr-section">
+      <div class="card-header" style="justify-content:center">
+        <div class="card-icon green">🔐</div>
+        <h2>WhatsApp Bağlantısı</h2>
+      </div>
+      <p class="qr-instructions" id="qrInstruction">QR kodu aşağıda görünecek. WhatsApp uygulamanızı açın.</p>
+      <div class="qr-box">
+        <img id="qr" src="" alt="QR" style="display:none" />
+        <div class="qr-placeholder" id="qrPlaceholder">
+          <div class="spinner"></div>
+          <span>QR oluşturuluyor...</span>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button onclick="refreshQr()" id="qrRefreshBtn" class="lg">🔄 QR'ı Yenile</button>
+      </div>
+      <p class="qr-instructions" style="margin-top:16px; color:var(--text3)">
+        1. WhatsApp aç → Ayarlar → Bağlı Cihazlar → Cihaz Bağla<br>
+        2. Paneldeki QR kodu tara<br>
+        3. Bağlantı kurulunca grupları yönetebilirsin
+      </p>
     </div>
   </div>
 
-  <!-- QR -->
-  <div class="card" id="qrCard" style="display:none">
-    <h2>🔐 QR Kodu ile Bağlan</h2>
-    <p style="color:#8a94ad;font-size:13px;margin-bottom:8px">
-      WhatsApp → Bağlı Cihazlar → QR tarat
-    </p>
-    <img id="qr" src="" alt="QR" />
-  </div>
-
-  <!-- ADMIN GRUBU -->
-  <div class="card">
-    <h2>👑 Admin Grubu Seç</h2>
-    <p style="color:#8a94ad;font-size:13px;margin-bottom:12px">
-      Komutlar yalnızca seçili gruptan dinlenir. Kutucuğa tıkla.
-    </p>
-    <div id="groupList" class="empty">Gruplar yükleniyor...</div>
-  </div>
-
-  <!-- DUYURU EKLE -->
-  <div class="card">
-    <h2>📨 Yeni Duyuru Ekle</h2>
-    <textarea id="msgText" placeholder="Yayınlanacak mesajı yaz... (link eklersen Gruba Katıl kartı otomatik görünür)"></textarea>
-    <div class="row">
-      <input id="msgMin" type="number" min="1" max="1440" value="10" style="width:110px" />
-      <span style="align-self:center;font-size:13px;color:#8a94ad">dakika aralık</span>
-      <button onclick="addAnn()">➕ Ekle ve Başlat</button>
+  <!-- TAB: GROUPS -->
+  <div class="tab-content" id="tab-groups">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon blue">👑</div>
+        <h2>Admin Grubu Seç</h2>
+      </div>
+      <p style="color:var(--text3);font-size:13px;margin-bottom:12px">
+        Komutlar yalnızca seçili gruptan dinlenir. Kutucuğa tıkla.
+      </p>
+      <div id="groupList" class="empty">Gruplar yükleniyor...</div>
     </div>
   </div>
 
-  <!-- AKTİF DUYURULAR -->
-  <div class="card">
-    <h2>📋 Aktif Duyurular</h2>
-    <table>
-      <thead><tr><th>#</th><th>Mesaj</th><th>Aralık</th><th></th></tr></thead>
-      <tbody id="annBody"><tr><td colspan="4" class="empty">Yükleniyor...</td></tr></tbody>
-    </table>
-    <div class="row" style="margin-top:14px">
-      <button class="danger" onclick="clearAll()">🗑 Tümünü Temizle</button>
+  <!-- TAB: BROADCASTS -->
+  <div class="tab-content" id="tab-broadcasts">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon green">📨</div>
+        <h2>Yeni Duyuru Oluştur</h2>
+      </div>
+      <div class="form-group">
+        <label>Mesaj Metni</label>
+        <textarea id="msgText" placeholder="Yayınlanacak mesajı yaz... (link eklersen Gruba Katıl kartı otomatik görünür)"></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:0 0 100px">
+          <label>Dakika</label>
+          <input id="msgMin" type="number" min="1" max="1440" value="10" />
+        </div>
+        <button onclick="addAnn()" class="lg">➕ Ekle ve Başlat</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon purple">📋</div>
+        <h2>Aktif Duyurular</h2>
+      </div>
+      <table>
+        <thead><tr><th>#</th><th>Mesaj</th><th>Aralık</th><th></th></tr></thead>
+        <tbody id="annBody"><tr><td colspan="4" class="empty">Yükleniyor...</td></tr></tbody>
+      </table>
+      <div class="btn-row" style="justify-content:flex-start; margin-top:14px">
+        <button class="danger" onclick="clearAll()">🗑 Tümünü Temizle</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: SETTINGS -->
+  <div class="tab-content" id="tab-settings">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon orange">⚙️</div>
+        <h2>Sistem Bilgisi</h2>
+      </div>
+      <div style="font-size:13px; color:var(--text2); line-height:2">
+        <p>🖥 Sunucu: <strong style="color:var(--text)">Ubuntu 20.04</strong></p>
+        <p>⚡ Node.js: <strong style="color:var(--text)">v22</strong></p>
+        <p>📦 WhatsApp Web.js: <strong style="color:var(--text)">v1.34.7</strong></p>
+        <p>🌐 Panel: <strong style="color:var(--text)">Port 3000</strong></p>
+        <p>🔧 Servis: <strong style="color:var(--green)">systemd (auto-restart)</strong></p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-icon orange">📖</div>
+        <h2>Komut Listesi</h2>
+      </div>
+      <div style="font-size:13px; color:var(--text2); line-height:2.2">
+        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!adminburasi</code> — Bu grubu admin grubu yapar</p>
+        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!yardim</code> — Komut listesini gösterir</p>
+        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!otogonder mesaj dk</code> — Periyodik yayın başlatır</p>
+        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!dur</code> — Yayını durdurur</p>
+        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!liste</code> — Aktif duyuruları gösterir</p>
+        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!temizle</code> — Tüm duyuruları siler</p>
+        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!katil link</code> — Linkle gruba katılır</p>
+      </div>
     </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
+
 <script>
-  function toast(msg){
+  let startTime = Date.now();
+  let currentAdmin = null;
+
+  function toast(msg, isError=false){
     const t = document.getElementById("toast");
     t.textContent = msg;
-    t.classList.add("show");
-    setTimeout(()=>t.classList.remove("show"), 2500);
+    t.className = "toast show" + (isError ? " error" : "");
+    setTimeout(()=>t.className = "toast", 3000);
   }
+
+  function switchTab(tabName){
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(t=>t.classList.remove("active"));
+    event.target.classList.add("active");
+    document.getElementById("tab-"+tabName).classList.add("active");
+  }
+
   function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
-  let currentAdmin = null;
 
   async function load(){
     try {
       const r = await fetch("/api/status");
       const d = await r.json();
       currentAdmin = d.adminGroupId;
-      document.getElementById("statusLine").innerHTML =
-        '<span class="dot ' + (d.authed?"on":"off") + '"></span>' +
-        (d.authed ? "WhatsApp'a bağlı — 7/24 yayında" : "QR bekleniyor — aşağıdan taratın");
-      const qrCard = document.getElementById("qrCard");
+
+      // Status
+      const dot = document.getElementById("statusDot");
+      const text = document.getElementById("statusText");
+      const badge = document.getElementById("statusBadge");
+      if (d.authed){
+        dot.className = "status-dot on";
+        text.textContent = "WhatsApp'a bağlı — 7/24 yayında";
+        badge.textContent = "Bağlı";
+        badge.className = "status-badge";
+      } else {
+        dot.className = "status-dot";
+        text.textContent = "QR bekleniyor — aşağıdan taratın";
+        badge.textContent = "Bağlı Değil";
+        badge.className = "status-badge off";
+      }
+
+      // QR
+      const qr = document.getElementById("qr");
+      const placeholder = document.getElementById("qrPlaceholder");
       if (!d.authed && d.qr){
-        qrCard.style.display = "block";
-        document.getElementById("qr").src = d.qr;
-      } else { qrCard.style.display = "none"; }
+        qr.style.display = "block";
+        qr.src = d.qr;
+        placeholder.style.display = "none";
+        document.getElementById("qrInstruction").textContent = "QR kodu hazır! WhatsApp ile tarayın.";
+      } else if (!d.authed){
+        qr.style.display = "none";
+        placeholder.style.display = "flex";
+        document.getElementById("qrInstruction").textContent = "QR oluşturuluyor... birkaç saniye bekleyin.";
+      } else {
+        document.getElementById("qrInstruction").textContent = "✅ Bağlantı aktif — QR gerekli değil.";
+        qr.style.display = "none";
+        placeholder.style.display = "none";
+      }
+
+      // Groups
+      const r2 = await fetch("/api/groups");
+      const d2 = await r2.json();
+      document.getElementById("gCount").textContent = d2.groups ? d2.groups.length : 0;
+      renderGroups(d2.groups || []);
+
+      // Announcements
       document.getElementById("aCount").textContent = d.announcements ? d.announcements.length : 0;
       renderAnn(d.announcements || []);
-    } catch(e){ console.error(e); }
-    try {
-      const r = await fetch("/api/groups");
-      const d = await r.json();
-      document.getElementById("gCount").textContent = d.groups ? d.groups.length : 0;
-      renderGroups(d.groups || []);
-    } catch(e){ console.error(e); }
+
+      // Uptime
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const mins = Math.floor(elapsed / 60);
+      const secs = elapsed % 60;
+      document.getElementById("uptime").textContent = mins > 0 ? mins + "dk" : secs + "sn";
+
+    } catch(e){ console.error("Load error:", e); }
   }
 
   function renderGroups(groups){
     const el = document.getElementById("groupList");
-    if (!groups.length){ el.className = "empty"; el.textContent = "Henüz grupta değilsin — !katil ile gruplara gir."; return; }
+    if (!groups.length){
+      el.className = "empty";
+      el.innerHTML = "Henüz grupta değilsin.<br><br><small style='color:var(--text3)'>Gruplara katılmak için:<br>1. Bir gruptan davet linki oluştur<br>2. Gruba gir → !katil &lt;link&gt; yaz<br>3. Ya da bot numarasını gruba ekle</small>";
+      return;
+    }
     el.className = "";
     el.innerHTML = groups.map(g=>
       '<div class="gitem ' + (g.id===currentAdmin?"sel":"") + '" onclick="pickGroup(\'' + esc(g.id) + '\')">' +
@@ -176,46 +439,68 @@
   }
 
   async function pickGroup(id){
-    await fetch("/api/admin-group", { method:"POST",
-      headers:{"Content-Type":"application/json"}, body: JSON.stringify({groupId:id}) });
-    toast("✅ Admin grubu seçildi — komutlar artık bu gruptan dinleniyor");
-    load();
+    try {
+      await fetch("/api/admin-group", { method:"POST",
+        headers:{"Content-Type":"application/json"}, body: JSON.stringify({groupId:id}) });
+      toast("✅ Admin grubu seçildi — komutlar bu gruptan dinleniyor");
+      load();
+    } catch(e){ toast("❌ Hata oluştu", true); }
   }
 
   function renderAnn(arr){
     const tb = document.getElementById("annBody");
     if (!arr.length){ tb.innerHTML = '<tr><td colspan="4" class="empty">Aktif duyuru yok</td></tr>'; return; }
     tb.innerHTML = arr.map((a,i)=>
-      '<tr><td>' + (i+1) + '</td><td style="max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(a.text) +
+      '<tr><td>' + (i+1) + '</td><td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(a.text) +
       '</td><td>her ' + a.minutes + ' dk</td><td>' +
-      '<button class="danger" style="padding:6px 12px;font-size:12px" onclick="delAnn('+i+')">🗑</button></td></tr>').join("");
+      '<button class="danger" style="padding:5px 10px;font-size:11px" onclick="delAnn('+i+')">🗑 Sil</button></td></tr>').join("");
   }
 
   async function addAnn(){
     const text = document.getElementById("msgText").value.trim();
     const minutes = document.getElementById("msgMin").value;
-    if (!text){ toast("⚠️ Mesaj yazmalısın"); return; }
-    await fetch("/api/announcement", { method:"POST",
-      headers:{"Content-Type":"application/json"}, body: JSON.stringify({text, minutes}) });
-    document.getElementById("msgText").value = "";
-    toast("✅ Duyuru eklendi — yayın başladı");
-    load();
+    if (!text){ toast("⚠️ Mesaj yazmalısın", true); return; }
+    try {
+      await fetch("/api/announcement", { method:"POST",
+        headers:{"Content-Type":"application/json"}, body: JSON.stringify({text, minutes}) });
+      document.getElementById("msgText").value = "";
+      toast("✅ Duyuru eklendi — tüm gruplara gönderilecek");
+      load();
+    } catch(e){ toast("❌ Hata oluştu", true); }
   }
 
   async function delAnn(i){
-    await fetch("/api/announcement/delete", { method:"POST",
-      headers:{"Content-Type":"application/json"}, body: JSON.stringify({index:i}) });
-    toast("🗑 Duyuru silindi");
-    load();
+    try {
+      await fetch("/api/announcement/delete", { method:"POST",
+        headers:{"Content-Type":"application/json"}, body: JSON.stringify({index:i}) });
+      toast("🗑 Duyuru silindi");
+      load();
+    } catch(e){ toast("❌ Hata oluştu", true); }
   }
 
   async function clearAll(){
-    if (!confirm("Tüm duyuruları silip yayını durdurmak istediğine emin misin?")) return;
-    await fetch("/api/announcements/clear", { method:"POST" });
-    toast("🗑 Tüm duyurular temizlendi — yayın durdu");
-    load();
+    if (!confirm("Tüm duyuruları silmek istediğine emin misin?")) return;
+    try {
+      await fetch("/api/announcements/clear", { method:"POST" });
+      toast("🗑 Tüm duyurular silindi");
+      load();
+    } catch(e){ toast("❌ Hata oluştu", true); }
   }
 
+  async function refreshQr(){
+    const btn = document.getElementById("qrRefreshBtn");
+    btn.textContent = "⏳ Yenileniyor...";
+    btn.disabled = true;
+    try {
+      const r = await fetch("/api/qr-refresh", { method:"POST" });
+      const d = await r.json();
+      if (d.ok){ toast("✅ QR yenileniyor, birkaç saniye içinde tarayın"); }
+      else { toast("❌ " + (d.error||"Bilinmeyen hata"), true); }
+    } catch(e){ toast("❌ Bağlantı hatası", true); }
+    setTimeout(()=>{ btn.textContent = "🔄 QR'ı Yenile"; btn.disabled = false; }, 5000);
+  }
+
+  // İlk yükleme ve otomatik yenileme
   load();
   setInterval(load, 5000);
 </script>
