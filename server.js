@@ -72,6 +72,26 @@ function addToGroupCache(chatId, chatName) {
   }
 }
 
+// Bağlantı kurulduğunda tüm grupları bir kerede yükle
+async function loadAllGroups() {
+  try {
+    const chats = await client.getChats();
+    console.log(`[CACHE] Toplam ${chats.length} sohbet yüklendi`);
+    for (const c of chats) {
+      if (c.isGroup && c.id?._serialized) {
+        groupCache[c.id._serialized] = {
+          id: c.id._serialized,
+          name: c.name || null,
+          lastSeen: Date.now(),
+        };
+      }
+    }
+    console.log(`[CACHE] ${Object.keys(groupCache).length} grup cache'lendi`);
+  } catch (e) {
+    console.error("[CACHE] getChats hatası:", e.message || e);
+  }
+}
+
 function isAdminGroup(chatId) {
   return config.adminGroupId && chatId === config.adminGroupId;
 }
@@ -100,22 +120,8 @@ let broadcastRunning = false;
 async function broadcast(text) {
   if (!client?.info) return;
 
-  // Grupları topla: getChats() + cache
-  const groupIds = new Set(Object.keys(groupCache));
-
-  // getChats() dene (çalışırsa ek gruplar gelir)
-  try {
-    const chats = await client.getChats();
-    for (const c of chats) {
-      if (c.isGroup && c.id?._serialized) {
-        groupIds.add(c.id._serialized);
-      }
-    }
-  } catch (e) {
-    console.error("[BCAST] getChats hatası:", e.message || e);
-  }
-
-  const ids = Array.from(groupIds);
+  // Cache'deki tüm grupları kullan (name bilgisi ile)
+  const ids = Object.keys(groupCache);
   console.log(`[BCAST] Duyuru ${ids.length} gruba gönderiliyor: "${text.slice(0, 50)}..."`);
 
   for (const gid of ids) {
@@ -313,10 +319,12 @@ function setupClient(c) {
     });
   });
 
-  c.on("ready", () => {
+  c.on("ready", async () => {
     console.log("[BOT] Bağlandı — MiranBot yayında");
     isConnected = true;
     qrDataUrl = null;
+    // Tüm grupları bir kerede yükle (isimler ile birlikte)
+    await loadAllGroups();
     startBroadcastLoop();
   });
 
