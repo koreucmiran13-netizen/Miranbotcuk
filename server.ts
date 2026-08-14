@@ -445,17 +445,19 @@ async function connectToWhatsApp(botId: string, phoneNumber?: string) {
         }
 
         const hasBackup = fs.existsSync(backupZipPath);
-        if (!hasReg && !hasBackup) {
-          console.log(`[CONN] [${botId}] Connection closed but session is not registered and no backup exists. Stopping automatic reconnect to prevent QR loop.`);
+        instance.qrReconnectAttempts = (instance.qrReconnectAttempts || 0) + 1;
+        if (!hasReg && !hasBackup && instance.qrReconnectAttempts > 5) {
+          console.log(`[CONN] [${botId}] Connection closed. Stopped reconnecting after 5 attempts during QR generation to prevent loops.`);
           instance.connectionStatus = 'disconnected';
           instance.qrCode = null;
           instance.pairingCode = null;
-          instance.activity = 'Bağlantı kapandı. Bağlanmak için QR kodunu tekrar talep edin.';
+          instance.activity = 'Bağlantı kapandı. Lütfen paneli yenileyip tekrar bağlanmayı deneyin.';
           instance.sock = null;
+          instance.qrReconnectAttempts = 0;
           return;
         }
 
-        console.log(`[CONN] [${botId}] Connection closed due to ${statusCode}. Reconnecting using existing session...`);
+        console.log(`[CONN] [${botId}] Connection closed due to ${statusCode} (Attempt ${instance.qrReconnectAttempts || 1}). Reconnecting...`);
         instance.activity = 'Bağlantı kesildi. Yeniden bağlanmaya çalışıyor...';
         instance.connectionStatus = 'connecting';
         const reconnectDelay = (statusCode === DisconnectReason.restartRequired || statusCode === DisconnectReason.badSession) ? 2000 : 5000;
@@ -465,6 +467,7 @@ async function connectToWhatsApp(botId: string, phoneNumber?: string) {
       }
     } else if (connection === 'open') {
       console.log(`[CONN] [${botId}] Connection opened successfully!`);
+      instance.qrReconnectAttempts = 0;
       instance.connectionStatus = 'connected';
       instance.qrCode = null;
       instance.pairingCode = null;
@@ -626,7 +629,6 @@ async function connectToWhatsApp(botId: string, phoneNumber?: string) {
     }
 
     // Command verification: Only respond to commands in the designated admin group OR in private chats (DMs)
-    const isFromAdminGroup = config.adminGroupId && from === config.adminGroupId;
     const isPrivateChat = !isGroup;
 
     if (!isFromAdminGroup && !isPrivateChat) return;
