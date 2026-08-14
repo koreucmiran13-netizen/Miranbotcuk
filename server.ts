@@ -1452,7 +1452,7 @@ setInterval(() => {
 
 // Vite Integration
 async function startServer() {
-  const isProd = process.env.NODE_ENV === 'production';
+  const isProd = process.env.NODE_ENV === 'production' || fs.existsSync(path.join(process.cwd(), 'dist', 'index.html'));
   
   if (!isProd) {
     const vite = await createViteServer({
