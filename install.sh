@@ -46,11 +46,10 @@ else
 fi
 cd "$BOT_DIR"
 
-# Eski .mjs kalıntılarını temizle (servis her zaman server.js çalıştırır)
-rm -f "$BOT_DIR"/server.mjs
-
 # --- 4. Bağımlılıklar ---
 echo "[MiranBot] Bağımlılıklar kuruluyor..."
+# Eski puppeteer/wwebjs cache'lerini temizle (inject uyumluluğu için)
+rm -rf "$BOT_DIR/.wwebjs_cache" "$BOT_DIR/.cache/puppeteer"
 npm install --no-audit --no-fund
 
 # --- 5. systemd servisi ---
