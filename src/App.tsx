@@ -70,8 +70,15 @@ interface ClientUser {
 export default function App() {
   // Authentication & session state
   const [user, setUser] = useState<UserState | null>(() => {
-    const saved = localStorage.getItem('miran_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('miran_user');
+      if (!saved || saved === 'undefined') return null;
+      return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to parse saved user:', e);
+      try { localStorage.removeItem('miran_user'); } catch (_) {}
+      return null;
+    }
   });
   
   const [loginUsername, setLoginUsername] = useState('');

@@ -17,6 +17,16 @@ import {
 import QRCode from 'qrcode';
 import pino from 'pino';
 import type { Boom } from '@hapi/boom';
+import { GoogleGenAI } from '@google/genai';
+
+const geminiClient = new GoogleGenAI({
+  apiKey: "AIzaSyCLgF1-_vAyXVYP2ZMVfk0P2rTR8WrpT2g",
+  httpOptions: {
+    headers: {
+      'User-Agent': 'aistudio-build',
+    }
+  }
+});
 
 const app = express();
 const port = 3000;
@@ -349,7 +359,7 @@ async function connectToWhatsApp(botId: string, phoneNumber?: string) {
     browser: ['Mac OS', 'Chrome', '114.0.5735.198'],
     syncFullHistory: false,
     shouldSyncHistoryMessage: () => false,
-    generateHighQualityLinkPreview: false,
+    generateHighQualityLinkPreview: true,
     markOnlineOnConnect: false,
     connectTimeoutMs: 60000,
     defaultQueryTimeoutMs: 60000,
@@ -412,12 +422,12 @@ async function connectToWhatsApp(botId: string, phoneNumber?: string) {
 
       console.log(`[CONN] [${botId}] Connection closed. Code: ${statusCode}, Error: ${errorMessage}`);
       
-      if (statusCode === DisconnectReason.loggedOut || isBadSession) {
-        console.log(`[CONN] [${botId}] Session logged out or corrupted (badSession/Bad MAC). Deleting session and backup.`);
+      if (statusCode === DisconnectReason.loggedOut) {
+        console.log(`[CONN] [${botId}] Session logged out explicitly. Deleting session and backup.`);
         instance.connectionStatus = 'disconnected';
         instance.pairingCode = null;
         instance.pairingPhone = null;
-        instance.activity = 'Oturum bozuldu veya kapatıldı. Yeni bağlantı için QR kodu taranmalı.';
+        instance.activity = 'Oturum kapatıldı. Yeni bağlantı için QR kodu taranmalı.';
         if (fs.existsSync(authDir)) fs.rmSync(authDir, { recursive: true, force: true });
         if (fs.existsSync(backupZipPath)) {
           try { fs.unlinkSync(backupZipPath); } catch (e) {}
@@ -434,8 +444,9 @@ async function connectToWhatsApp(botId: string, phoneNumber?: string) {
           } catch (e) {}
         }
 
-        if (!hasReg) {
-          console.log(`[CONN] [${botId}] Connection closed but session is not registered. Stopping automatic reconnect to prevent QR loop.`);
+        const hasBackup = fs.existsSync(backupZipPath);
+        if (!hasReg && !hasBackup) {
+          console.log(`[CONN] [${botId}] Connection closed but session is not registered and no backup exists. Stopping automatic reconnect to prevent QR loop.`);
           instance.connectionStatus = 'disconnected';
           instance.qrCode = null;
           instance.pairingCode = null;
@@ -505,9 +516,32 @@ async function connectToWhatsApp(botId: string, phoneNumber?: string) {
         return;
       }
 
+      if (msg.key.fromMe) return;
+
       // Read marking
       if (text) {
         instance.sock?.readMessages([msg.key]).catch(e => console.error('Error reading msg:', e));
+      }
+
+      // Admin group AI Chatbot Integration
+      const isFromAdminGroup = config.adminGroupId && from === config.adminGroupId;
+      if (isFromAdminGroup && text && !text.startsWith('!')) {
+        try {
+          const response = await geminiClient.models.generateContent({
+            model: 'gemini-3.7-flash',
+            contents: text,
+            config: {
+              systemInstruction: `Sen "Miran Bot" sisteminin akıllı yapay zeka asistanısın. Yönetici grubundaki kullanıcılar ile samimi, saygılı, yardımsever ve son derece zeki bir şekilde Türkçe sohbet et. Miran Bot sisteminin yöneticilerine destek oluyorsun. Cevapların kısa, net, anlaşılır ve etkileyici olsun.`
+            }
+          });
+          const reply = response.text || '';
+          if (reply) {
+            await safeSendMessage(botId, from, { text: reply }, { quoted: msg });
+          }
+        } catch (aiErr) {
+          console.error(`[AI CHAT] [${botId}] Gemini error:`, aiErr);
+        }
+        return;
       }
 
       // Invite Detection
@@ -954,7 +988,7 @@ async function runBroadcasts() {
                       await delay(1500);
                       // Send the text with link preview card
                       if (urlInfo) {
-                        result = await safeSendMessage(botId, gid, { text: broadcast.message, ...urlInfo });
+                        result = await safeSendMessage(botId, gid, { text: broadcast.message, linkPreview: urlInfo });
                       } else {
                         result = await safeSendMessage(botId, gid, { text: broadcast.message });
                       }
@@ -962,7 +996,7 @@ async function runBroadcasts() {
                       result = await safeSendMessage(botId, gid, { image: fs.readFileSync(broadcast.imageUrl), caption: broadcast.message });
                     }
                   } else {
-                    if (urlInfo) result = await safeSendMessage(botId, gid, { text: broadcast.message, ...urlInfo });
+                    if (urlInfo) result = await safeSendMessage(botId, gid, { text: broadcast.message, linkPreview: urlInfo });
                     else result = await safeSendMessage(botId, gid, { text: broadcast.message });
                   }
 
