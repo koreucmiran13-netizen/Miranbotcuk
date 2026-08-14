@@ -1,508 +1,655 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>MiranBot — Yönetim Paneli</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiranBot Panel</title>
 <style>
   :root {
-    --bg: #0a0e1a;
-    --bg2: #111827;
-    --card: #1a2236;
-    --card-border: #2a3550;
-    --green: #25D366;
-    --green-dim: #0d3320;
-    --red: #ef4444;
-    --blue: #3b82f6;
-    --text: #f1f5f9;
-    --text2: #94a3b8;
-    --text3: #64748b;
-    --radius: 16px;
-    --shadow: 0 4px 24px rgba(0,0,0,0.3);
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #111827;
+    --bg-card: #1a2235;
+    --accent: #22c55e;
+    --accent-dark: #16a34a;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --border: #2d3748;
+    --radius: 12px;
   }
-  * { margin:0; padding:0; box-sizing:border-box; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--bg);
-    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     min-height: 100vh;
-    overflow-x: hidden;
   }
-  .bg-grid {
-    position: fixed; top:0; left:0; width:100%; height:100%;
-    background-image: radial-gradient(circle at 1px 1px, rgba(37,211,102,0.03) 1px, transparent 0);
-    background-size: 40px 40px;
-    pointer-events: none; z-index:0;
-  }
-  .wrap { max-width:1000px; margin:0 auto; padding:20px 16px; position:relative; z-index:1; }
 
-  /* HEADER */
-  header {
-    display:flex; align-items:center; justify-content:space-between;
-    margin-bottom:24px; padding-bottom:16px; border-bottom:1px solid var(--card-border);
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 16px;
   }
-  .logo { display:flex; align-items:center; gap:12px; }
-  .logo-icon {
-    width:44px; height:44px; border-radius:12px;
-    background: linear-gradient(135deg, var(--green), #128C7E);
-    display:flex; align-items:center; justify-content:center; font-size:22px;
-  }
-  .logo h1 { font-size:22px; font-weight:800; }
-  .logo h1 span { color:var(--green); }
-  .logo .sub { font-size:12px; color:var(--text3); margin-top:2px; }
 
-  /* STATUS BAR */
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #22c55e, #4ade80);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header p { color: var(--text-secondary); margin-top: 4px; }
+
+  /* Status Bar */
   .status-bar {
-    display:flex; align-items:center; gap:10px;
-    background:var(--card); border:1px solid var(--card-border);
-    border-radius:12px; padding:10px 16px; margin-bottom:20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 24px;
   }
   .status-dot {
-    width:10px; height:10px; border-radius:50%;
-    background:var(--red); flex-shrink:0;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--danger);
+    animation: pulse 2s infinite;
   }
-  .status-dot.on { background:var(--green); box-shadow:0 0 10px var(--green); animation:pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
-  .status-text { font-size:14px; font-weight:600; }
-  .status-badge {
-    margin-left:auto; font-size:11px; font-weight:700;
-    background:var(--green-dim); color:var(--green);
-    padding:4px 10px; border-radius:999px; text-transform:uppercase; letter-spacing:0.5px;
+  .status-dot.online { background: var(--accent); }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
   }
-  .status-badge.off { background:#3b1a1a; color:var(--red); }
+  .status-text { font-weight: 600; font-size: 0.95rem; }
 
-  /* CARDS */
-  .card {
-    background:var(--card); border:1px solid var(--card-border);
-    border-radius:var(--radius); padding:20px; margin-bottom:16px;
-    box-shadow:var(--shadow);
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    padding: 4px;
+    margin-bottom: 20px;
+    overflow-x: auto;
   }
-  .card-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
-  .card-icon {
-    width:36px; height:36px; border-radius:10px; display:flex;
-    align-items:center; justify-content:center; font-size:18px; flex-shrink:0;
-  }
-  .card-icon.green { background:var(--green-dim); }
-  .card-icon.blue { background:#1e3a5f; }
-  .card-icon.purple { background:#3b1f5e; }
-  .card-icon.orange { background:#5c3d1a; }
-  .card h2 { font-size:14px; font-weight:700; color:var(--text2); text-transform:uppercase; letter-spacing:1px; }
-
-  /* STATS GRID */
-  .stats-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-bottom:20px; }
-  @media(max-width:640px){ .stats-grid{grid-template-columns:1fr;} }
-  .stat {
-    background:var(--bg2); border:1px solid var(--card-border);
-    border-radius:12px; padding:16px; text-align:center;
-  }
-  .stat .num { font-size:28px; font-weight:800; color:var(--green); }
-  .stat .lbl { font-size:11px; color:var(--text3); margin-top:4px; text-transform:uppercase; letter-spacing:0.5px; }
-
-  /* QR SECTION */
-  .qr-section { text-align:center; }
-  .qr-box {
-    background:#fff; border-radius:16px; padding:20px;
-    display:inline-block; margin:16px 0; position:relative;
-    box-shadow:0 0 40px rgba(37,211,102,0.1);
-  }
-  .qr-box img { width:220px; height:220px; border-radius:8px; }
-  .qr-placeholder {
-    width:220px; height:220px; border-radius:8px;
-    background:var(--bg2); border:2px dashed var(--card-border);
-    display:flex; align-items:center; justify-content:center;
-    flex-direction:column; gap:8px;
-  }
-  .qr-placeholder .spinner {
-    width:36px; height:36px; border:3px solid var(--card-border);
-    border-top-color:var(--green); border-radius:50%;
-    animation:spin 1s linear infinite;
-  }
-  @keyframes spin { to{transform:rotate(360deg)} }
-  .qr-placeholder span { font-size:12px; color:var(--text3); }
-  .qr-instructions { font-size:13px; color:var(--text2); margin-top:8px; line-height:1.6; }
-  .btn-row { display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
-
-  /* BUTTONS */
-  button {
-    background:var(--green); color:#062213; border:none;
-    border-radius:10px; padding:10px 18px; font-size:13px; font-weight:700;
-    cursor:pointer; transition:all .15s; display:inline-flex; align-items:center; gap:6px;
-  }
-  button:hover { filter:brightness(1.15); transform:translateY(-1px); }
-  button:active { transform:scale(0.97); }
-  button:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
-  button.secondary { background:var(--bg2); color:var(--text); border:1px solid var(--card-border); }
-  button.secondary:hover { border-color:var(--green); }
-  button.danger { background:var(--red); color:#fff; }
-  button.danger:hover { background:#dc2626; }
-  button.lg { padding:12px 24px; font-size:14px; }
-
-  /* GROUP LIST */
-  .gitem {
-    display:flex; align-items:center; padding:12px 14px;
-    background:var(--bg2); border:1px solid var(--card-border);
-    border-radius:10px; margin-bottom:8px; cursor:pointer; transition:all .15s;
-  }
-  .gitem:hover { border-color:var(--green); background:#14202e; }
-  .gitem.sel { border-color:var(--green); background:var(--green-dim); }
-  .gitem .box {
-    width:22px; height:22px; border:2px solid var(--text3);
-    border-radius:6px; margin-right:12px; flex:0 0 22px;
-    display:flex; align-items:center; justify-content:center; transition:all .15s;
-  }
-  .gitem.sel .box { background:var(--green); border-color:var(--green); }
-  .gitem.sel .box::after { content:"✓"; color:#062213; font-weight:800; font-size:13px; }
-  .gitem .gname { flex:1; font-size:14px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-  .gitem .tag {
-    font-size:10px; font-weight:700; background:var(--green-dim); color:var(--green);
-    padding:3px 8px; border-radius:999px; margin-left:8px; text-transform:uppercase;
-  }
-
-  /* FORM */
-  input, textarea, select {
-    background:var(--bg2); border:1px solid var(--card-border);
-    color:var(--text); border-radius:10px; padding:12px 14px;
-    font-size:14px; font-family:inherit; width:100%;
-  }
-  textarea { resize:vertical; min-height:80px; }
-  input:focus, textarea:focus { outline:none; border-color:var(--green); }
-  .form-row { display:flex; gap:10px; align-items:flex-end; margin-top:12px; }
-  .form-row input[type="number"] { width:100px; flex-shrink:0; }
-  .form-group { flex:1; }
-  .form-group label { display:block; font-size:11px; color:var(--text3); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px; }
-
-  /* TABLE */
-  table { width:100%; border-collapse:collapse; font-size:13px; }
-  th { text-align:left; color:var(--text3); font-weight:600; padding:8px 10px; border-bottom:1px solid var(--card-border); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; }
-  td { padding:10px; border-bottom:1px solid rgba(42,53,80,0.5); }
-  tr:last-child td { border-bottom:none; }
-  .empty { color:var(--text3); font-size:13px; padding:20px 0; text-align:center; }
-
-  /* TOAST */
-  .toast {
-    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(100px);
-    background:var(--green); color:#062213; font-weight:700; padding:12px 24px;
-    border-radius:999px; opacity:0; transition:all .3s; pointer-events:none; z-index:99;
-    font-size:13px;
-  }
-  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-  .toast.error { background:var(--red); color:#fff; }
-
-  /* NAV TABS */
-  .tabs { display:flex; gap:4px; margin-bottom:20px; background:var(--bg2); border-radius:12px; padding:4px; }
   .tab {
-    flex:1; padding:10px 14px; border-radius:8px; font-size:12px; font-weight:600;
-    color:var(--text3); cursor:pointer; transition:all .15s; text-align:center;
+    flex: 1;
+    padding: 12px 16px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
   }
-  .tab.active { background:var(--green); color:#062213; }
-  .tab:hover:not(.active) { color:var(--text); background:rgba(37,211,102,0.05); }
-  .tab-content { display:none; }
-  .tab-content.active { display:block; }
+  .tab.active {
+    background: var(--accent);
+    color: #000;
+  }
+  .tab:hover:not(.active) { color: var(--text-primary); }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Tab content */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* QR Section */
+  .qr-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+  }
+  .qr-image {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  .qr-image img { width: 256px; height: 256px; }
+  .btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+  .btn-primary:hover { background: var(--accent-dark); }
+  .btn-danger {
+    background: var(--danger);
+    color: #fff;
+  }
+  .btn-danger:hover { opacity: 0.9; }
+
+  /* Groups */
+  .group-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .group-item:hover { border-color: var(--accent); }
+  .group-item.selected {
+    border-color: var(--accent);
+    background: rgba(34, 197, 94, 0.1);
+  }
+  .group-checkbox {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .group-item.selected .group-checkbox {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .group-item.selected .group-checkbox::after {
+    content: "✓";
+    color: #000;
+    font-weight: bold;
+    font-size: 12px;
+  }
+  .group-name { font-weight: 500; flex: 1; }
+  .group-id { color: var(--text-secondary); font-size: 0.8rem; }
+
+  /* Announcement Form */
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+  }
+  .form-input, .form-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  .form-input:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .form-textarea { min-height: 100px; resize: vertical; }
+
+  /* Announcement List */
+  .ann-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .ann-text { flex: 1; font-size: 0.9rem; }
+  .ann-interval {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--accent);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .ann-delete {
+    background: var(--danger);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    width: 28px; height: 28px;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+
+  /* Settings */
+  .setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .setting-label { font-weight: 500; }
+  .setting-value { color: var(--accent); font-weight: 600; }
+
+  /* Commands Reference */
+  .cmd-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .cmd-item {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+  }
+  .cmd-name { color: var(--accent); font-weight: 700; font-family: monospace; }
+  .cmd-desc { color: var(--text-secondary); margin-top: 2px; }
+
+  /* Loading */
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+  }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 32px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--accent);
+    color: #000;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s;
+    z-index: 1000;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
 </style>
 </head>
 <body>
-<div class="bg-grid"></div>
-<div class="wrap">
-  <header>
-    <div class="logo">
-      <div class="logo-icon">🤖</div>
-      <div>
-        <h1>Miran<span>Bot</span></h1>
-        <p class="sub">7/24 WhatsApp Yönetim Paneli</p>
-      </div>
-    </div>
-    <div class="status-badge" id="versionBadge">v1.4</div>
-  </header>
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>🤖 MiranBot Panel</h1>
+    <p>7/24 WhatsApp duyuru botu</p>
+  </div>
 
+  <!-- Status Bar -->
   <div class="status-bar">
     <div class="status-dot" id="statusDot"></div>
-    <span class="status-text" id="statusText">Yükleniyor...</span>
-    <span class="status-badge off" id="statusBadge">Bağlı Değil</span>
+    <span class="status-text" id="statusText">Bağlanıyor...</span>
   </div>
 
-  <div class="stats-grid">
-    <div class="stat"><div class="num" id="gCount">—</div><div class="lbl">Grup</div></div>
-    <div class="stat"><div class="num" id="aCount">0</div><div class="lbl">Aktif Duyuru</div></div>
-    <div class="stat"><div class="num" id="uptime">—</div><div class="lbl">Çalışma Süresi</div></div>
-  </div>
-
-  <!-- TABS -->
+  <!-- Tabs -->
   <div class="tabs">
-    <div class="tab active" onclick="switchTab('connection')">🔗 Bağlantı</div>
-    <div class="tab" onclick="switchTab('groups')">👥 Gruplar</div>
-    <div class="tab" onclick="switchTab('broadcasts')">📢 Duyurular</div>
-    <div class="tab" onclick="switchTab('settings')">⚙️ Ayarlar</div>
+    <button class="tab active" data-tab="connection">🔗 Bağlantı</button>
+    <button class="tab" data-tab="groups">👥 Gruplar</button>
+    <button class="tab" data-tab="announcements">📢 Duyurular</button>
+    <button class="tab" data-tab="settings">⚙️ Ayarlar</button>
   </div>
 
-  <!-- TAB: CONNECTION -->
+  <!-- Tab: Connection -->
   <div class="tab-content active" id="tab-connection">
-    <div class="card qr-section">
-      <div class="card-header" style="justify-content:center">
-        <div class="card-icon green">🔐</div>
-        <h2>WhatsApp Bağlantısı</h2>
-      </div>
-      <p class="qr-instructions" id="qrInstruction">QR kodu aşağıda görünecek. WhatsApp uygulamanızı açın.</p>
-      <div class="qr-box">
-        <img id="qr" src="" alt="QR" style="display:none" />
-        <div class="qr-placeholder" id="qrPlaceholder">
+    <div class="card">
+      <div class="card-title">📱 WhatsApp Bağlantısı</div>
+      <div class="qr-box" id="qrBox">
+        <div class="loading" id="qrLoading">
           <div class="spinner"></div>
-          <span>QR oluşturuluyor...</span>
+          <p>QR oluşturuluyor...</p>
         </div>
+        <div class="qr-image" id="qrImage" style="display:none">
+          <img id="qrImg" src="" alt="QR Kod">
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; text-align: center;" id="qrHint">
+          WhatsApp → Ayarlar → Bağlı Cihazlar → Cihaz Bağla<br>
+          Paneldeki QR kodu tarayın
+        </p>
+        <button class="btn btn-danger" id="btnRefresh" onclick="refreshQR()">🔄 QR'ı Yenile</button>
       </div>
-      <div class="btn-row">
-        <button onclick="refreshQr()" id="qrRefreshBtn" class="lg">🔄 QR'ı Yenile</button>
-      </div>
-      <p class="qr-instructions" style="margin-top:16px; color:var(--text3)">
-        1. WhatsApp aç → Ayarlar → Bağlı Cihazlar → Cihaz Bağla<br>
-        2. Paneldeki QR kodu tara<br>
-        3. Bağlantı kurulunca grupları yönetebilirsin
-      </p>
     </div>
   </div>
 
-  <!-- TAB: GROUPS -->
+  <!-- Tab: Groups -->
   <div class="tab-content" id="tab-groups">
     <div class="card">
-      <div class="card-header">
-        <div class="card-icon blue">👑</div>
-        <h2>Admin Grubu Seç</h2>
-      </div>
-      <p style="color:var(--text3);font-size:13px;margin-bottom:12px">
+      <div class="card-title">👑 Admin Grubu Seç</div>
+      <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 16px;">
         Komutlar yalnızca seçili gruptan dinlenir. Kutucuğa tıkla.
       </p>
-      <div id="groupList" class="empty">Gruplar yükleniyor...</div>
+      <div id="groupList"></div>
     </div>
   </div>
 
-  <!-- TAB: BROADCASTS -->
-  <div class="tab-content" id="tab-broadcasts">
+  <!-- Tab: Announcements -->
+  <div class="tab-content" id="tab-announcements">
     <div class="card">
-      <div class="card-header">
-        <div class="card-icon green">📨</div>
-        <h2>Yeni Duyuru Oluştur</h2>
+      <div class="card-title">📢 Yeni Duyuru Ekle</div>
+      <div class="form-group">
+        <label>Mesaj</label>
+        <textarea class="form-textarea" id="annText" placeholder="Tüm gruplara gönderilecek mesajı yaz..."></textarea>
       </div>
       <div class="form-group">
-        <label>Mesaj Metni</label>
-        <textarea id="msgText" placeholder="Yayınlanacak mesajı yaz... (link eklersen Gruba Katıl kartı otomatik görünür)"></textarea>
+        <label>Aralık (dakika)</label>
+        <input type="number" class="form-input" id="annInterval" value="10" min="1">
       </div>
-      <div class="form-row">
-        <div class="form-group" style="flex:0 0 100px">
-          <label>Dakika</label>
-          <input id="msgMin" type="number" min="1" max="1440" value="10" />
-        </div>
-        <button onclick="addAnn()" class="lg">➕ Ekle ve Başlat</button>
-      </div>
+      <button class="btn btn-primary" onclick="addAnnouncement()">➕ Ekle ve Başlat</button>
     </div>
 
     <div class="card">
-      <div class="card-header">
-        <div class="card-icon purple">📋</div>
-        <h2>Aktif Duyurular</h2>
-      </div>
-      <table>
-        <thead><tr><th>#</th><th>Mesaj</th><th>Aralık</th><th></th></tr></thead>
-        <tbody id="annBody"><tr><td colspan="4" class="empty">Yükleniyor...</td></tr></tbody>
-      </table>
-      <div class="btn-row" style="justify-content:flex-start; margin-top:14px">
-        <button class="danger" onclick="clearAll()">🗑 Tümünü Temizle</button>
-      </div>
+      <div class="card-title">📋 Aktif Duyurular</div>
+      <div id="announcementList"></div>
+      <button class="btn btn-danger" onclick="clearAll()" style="margin-top: 12px; width: 100%;">🗑️ Tümünü Temizle</button>
     </div>
   </div>
 
-  <!-- TAB: SETTINGS -->
+  <!-- Tab: Settings -->
   <div class="tab-content" id="tab-settings">
     <div class="card">
-      <div class="card-header">
-        <div class="card-icon orange">⚙️</div>
-        <h2>Sistem Bilgisi</h2>
+      <div class="card-title">ℹ️ Sistem Bilgisi</div>
+      <div class="setting-row">
+        <span class="setting-label">Durum</span>
+        <span class="setting-value" id="setConnected">—</span>
       </div>
-      <div style="font-size:13px; color:var(--text2); line-height:2">
-        <p>🖥 Sunucu: <strong style="color:var(--text)">Ubuntu 20.04</strong></p>
-        <p>⚡ Node.js: <strong style="color:var(--text)">v22</strong></p>
-        <p>📦 WhatsApp Web.js: <strong style="color:var(--text)">v1.34.7</strong></p>
-        <p>🌐 Panel: <strong style="color:var(--text)">Port 3000</strong></p>
-        <p>🔧 Servis: <strong style="color:var(--green)">systemd (auto-restart)</strong></p>
+      <div class="setting-row">
+        <span class="setting-label">Grup Sayısı</span>
+        <span class="setting-value" id="setGroups">0</span>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Aktif Duyuru</span>
+        <span class="setting-value" id="setAnnouncements">0</span>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Çalışma Süresi</span>
+        <span class="setting-value" id="setUptime">—</span>
       </div>
     </div>
+
     <div class="card">
-      <div class="card-header">
-        <div class="card-icon orange">📖</div>
-        <h2>Komut Listesi</h2>
-      </div>
-      <div style="font-size:13px; color:var(--text2); line-height:2.2">
-        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!adminburasi</code> — Bu grubu admin grubu yapar</p>
-        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!yardim</code> — Komut listesini gösterir</p>
-        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!otogonder mesaj dk</code> — Periyodik yayın başlatır</p>
-        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!dur</code> — Yayını durdurur</p>
-        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!liste</code> — Aktif duyuruları gösterir</p>
-        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!temizle</code> — Tüm duyuruları siler</p>
-        <p><code style="background:var(--bg2);padding:2px 6px;border-radius:4px;color:var(--green)">!katil link</code> — Linkle gruba katılır</p>
+      <div class="card-title">💬 Komut Listesi</div>
+      <div class="cmd-grid">
+        <div class="cmd-item"><span class="cmd-name">!adminburasi</span><div class="cmd-desc">Admin grubunu seç</div></div>
+        <div class="cmd-item"><span class="cmd-name">!yardim</span><div class="cmd-desc">Komut listesi</div></div>
+        <div class="cmd-item"><span class="cmd-name">!otogonder</span><div class="cmd-desc">Mesaj + dakika → yayın</div></div>
+        <div class="cmd-item"><span class="cmd-name">!durdur</span><div class="cmd-desc">Yayını durdur</div></div>
+        <div class="cmd-item"><span class="cmd-name">!liste</span><div class="cmd-desc">Duyuru listesi</div></div>
+        <div class="cmd-item"><span class="cmd-name">!temizle</span><div class="cmd-desc">Tümünü sil</div></div>
+        <div class="cmd-item"><span class="cmd-name">!katil</span><div class="cmd-desc">Linkle gruba katıl</div></div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-  let startTime = Date.now();
-  let currentAdmin = null;
+  // Tab switching
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      loadGroups();
+      loadAnnouncements();
+    });
+  });
 
-  function toast(msg, isError=false){
-    const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.className = "toast show" + (isError ? " error" : "");
-    setTimeout(()=>t.className = "toast", 3000);
+  // Toast
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
   }
 
-  function switchTab(tabName){
-    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-    document.querySelectorAll(".tab-content").forEach(t=>t.classList.remove("active"));
-    event.target.classList.add("active");
-    document.getElementById("tab-"+tabName).classList.add("active");
+  // Format uptime
+  function formatUptime(seconds) {
+    const d = Math.floor(seconds / 86400);
+    const h = Math.floor((seconds % 86400) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    let s = '';
+    if (d > 0) s += d + 'g ';
+    if (h > 0) s += h + 's ';
+    s += m + 'dk';
+    return s;
   }
 
-  function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
-
-  async function load(){
+  // Load status
+  async function loadStatus() {
     try {
-      const r = await fetch("/api/status");
-      const d = await r.json();
-      currentAdmin = d.adminGroupId;
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      const qrLoading = document.getElementById('qrLoading');
+      const qrImage = document.getElementById('qrImage');
+      const qrHint = document.getElementById('qrHint');
 
-      // Status
-      const dot = document.getElementById("statusDot");
-      const text = document.getElementById("statusText");
-      const badge = document.getElementById("statusBadge");
-      if (d.authed){
-        dot.className = "status-dot on";
-        text.textContent = "WhatsApp'a bağlı — 7/24 yayında";
-        badge.textContent = "Bağlı";
-        badge.className = "status-badge";
+      if (data.connected) {
+        dot.classList.add('online');
+        text.textContent = 'WhatsApp\'a bağlı — 7/24 yayında';
+        qrLoading.style.display = 'none';
+        qrImage.style.display = 'none';
+        qrHint.textContent = '✅ Bot bağlı ve çalışıyor';
       } else {
-        dot.className = "status-dot";
-        text.textContent = "QR bekleniyor — aşağıdan taratın";
-        badge.textContent = "Bağlı Değil";
-        badge.className = "status-badge off";
+        dot.classList.remove('online');
+        text.textContent = 'QR bekleniyor — aşağıdan tarayın';
+        // QR yüklemesi zaten yapılıyor, dokunma
       }
 
-      // QR
-      const qr = document.getElementById("qr");
-      const placeholder = document.getElementById("qrPlaceholder");
-      if (!d.authed && d.qr){
-        qr.style.display = "block";
-        qr.src = d.qr;
-        placeholder.style.display = "none";
-        document.getElementById("qrInstruction").textContent = "QR kodu hazır! WhatsApp ile tarayın.";
-      } else if (!d.authed){
-        qr.style.display = "none";
-        placeholder.style.display = "flex";
-        document.getElementById("qrInstruction").textContent = "QR oluşturuluyor... birkaç saniye bekleyin.";
-      } else {
-        document.getElementById("qrInstruction").textContent = "✅ Bağlantı aktif — QR gerekli değil.";
-        qr.style.display = "none";
-        placeholder.style.display = "none";
-      }
-
-      // Groups
-      const r2 = await fetch("/api/groups");
-      const d2 = await r2.json();
-      document.getElementById("gCount").textContent = d2.groups ? d2.groups.length : 0;
-      renderGroups(d2.groups || []);
-
-      // Announcements
-      document.getElementById("aCount").textContent = d.announcements ? d.announcements.length : 0;
-      renderAnn(d.announcements || []);
-
-      // Uptime
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const mins = Math.floor(elapsed / 60);
-      const secs = elapsed % 60;
-      document.getElementById("uptime").textContent = mins > 0 ? mins + "dk" : secs + "sn";
-
-    } catch(e){ console.error("Load error:", e); }
-  }
-
-  function renderGroups(groups){
-    const el = document.getElementById("groupList");
-    if (!groups.length){
-      el.className = "empty";
-      el.innerHTML = "Henüz grupta değilsin.<br><br><small style='color:var(--text3)'>Gruplara katılmak için:<br>1. Bir gruptan davet linki oluştur<br>2. Gruba gir → !katil &lt;link&gt; yaz<br>3. Ya da bot numarasını gruba ekle</small>";
-      return;
+      // Settings
+      document.getElementById('setConnected').textContent = data.connected ? '✅ Bağlı' : '❌ Beklemede';
+      document.getElementById('setGroups').textContent = data.groups;
+      document.getElementById('setAnnouncements').textContent = data.announcementCount;
+      document.getElementById('setUptime').textContent = formatUptime(data.uptime);
+    } catch (e) {
+      console.error('Status load error:', e);
     }
-    el.className = "";
-    el.innerHTML = groups.map(g=>
-      '<div class="gitem ' + (g.id===currentAdmin?"sel":"") + '" onclick="pickGroup(\'' + esc(g.id) + '\')">' +
-      '<div class="box"></div><div class="gname">' + esc(g.name) + '</div>' +
-      (g.selected?'<div class="tag">Admin</div>':'') +
-      '</div>').join("");
   }
 
-  async function pickGroup(id){
+  // Load QR
+  async function loadQR() {
     try {
-      await fetch("/api/admin-group", { method:"POST",
-        headers:{"Content-Type":"application/json"}, body: JSON.stringify({groupId:id}) });
-      toast("✅ Admin grubu seçildi — komutlar bu gruptan dinleniyor");
-      load();
-    } catch(e){ toast("❌ Hata oluştu", true); }
+      const res = await fetch('/api/qr');
+      const data = await res.json();
+      const qrImg = document.getElementById('qrImg');
+      const qrImage = document.getElementById('qrImage');
+      const qrLoading = document.getElementById('qrLoading');
+      const qrHint = document.getElementById('qrHint');
+
+      if (data.qr) {
+        qrImg.src = data.qr;
+        qrImage.style.display = 'block';
+        qrLoading.style.display = 'none';
+        qrHint.textContent = 'WhatsApp → Ayarlar → Bağlı Cihazlar → Cihaz Bağla';
+      } else {
+        qrImage.style.display = 'none';
+        qrLoading.style.display = data.connected ? 'none' : 'block';
+      }
+    } catch (e) {
+      console.error('QR load error:', e);
+    }
   }
 
-  function renderAnn(arr){
-    const tb = document.getElementById("annBody");
-    if (!arr.length){ tb.innerHTML = '<tr><td colspan="4" class="empty">Aktif duyuru yok</td></tr>'; return; }
-    tb.innerHTML = arr.map((a,i)=>
-      '<tr><td>' + (i+1) + '</td><td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(a.text) +
-      '</td><td>her ' + a.minutes + ' dk</td><td>' +
-      '<button class="danger" style="padding:5px 10px;font-size:11px" onclick="delAnn('+i+')">🗑 Sil</button></td></tr>').join("");
-  }
-
-  async function addAnn(){
-    const text = document.getElementById("msgText").value.trim();
-    const minutes = document.getElementById("msgMin").value;
-    if (!text){ toast("⚠️ Mesaj yazmalısın", true); return; }
+  // Refresh QR
+  async function refreshQR() {
     try {
-      await fetch("/api/announcement", { method:"POST",
-        headers:{"Content-Type":"application/json"}, body: JSON.stringify({text, minutes}) });
-      document.getElementById("msgText").value = "";
-      toast("✅ Duyuru eklendi — tüm gruplara gönderilecek");
-      load();
-    } catch(e){ toast("❌ Hata oluştu", true); }
+      const res = await fetch('/api/qr-refresh', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        showToast('QR yenileniyor...');
+        setTimeout(() => { loadQR(); loadStatus(); }, 3000);
+      }
+    } catch (e) {
+      showToast('Hata: ' + e.message);
+    }
   }
 
-  async function delAnn(i){
+  // Load groups
+  async function loadGroups() {
     try {
-      await fetch("/api/announcement/delete", { method:"POST",
-        headers:{"Content-Type":"application/json"}, body: JSON.stringify({index:i}) });
-      toast("🗑 Duyuru silindi");
-      load();
-    } catch(e){ toast("❌ Hata oluştu", true); }
+      const res = await fetch('/api/groups');
+      const data = await res.json();
+      const container = document.getElementById('groupList');
+
+      if (!data.groups.length) {
+        container.innerHTML = '<div class="empty-state">Henüz grup bulunamadı.<br>Bot bağlandıktan sonra mesaj geldikçe gruplar görünecek.</div>';
+        return;
+      }
+
+      container.innerHTML = data.groups.map(g => `
+        <div class="group-item ${g.selected ? 'selected' : ''}" onclick="selectGroup('${g.id}')">
+          <div class="group-checkbox"></div>
+          <span class="group-name">${g.name}</span>
+          <span class="group-id">${g.id.slice(0, 16)}...</span>
+        </div>
+      `).join('');
+    } catch (e) {
+      console.error('Groups load error:', e);
+    }
   }
 
-  async function clearAll(){
-    if (!confirm("Tüm duyuruları silmek istediğine emin misin?")) return;
+  // Select admin group
+  async function selectGroup(groupId) {
     try {
-      await fetch("/api/announcements/clear", { method:"POST" });
-      toast("🗑 Tüm duyurular silindi");
-      load();
-    } catch(e){ toast("❌ Hata oluştu", true); }
+      const res = await fetch('/api/admin-group', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showToast('✅ Admin grubu seçildi!');
+        loadGroups();
+        loadStatus();
+      }
+    } catch (e) {
+      showToast('Hata: ' + e.message);
+    }
   }
 
-  async function refreshQr(){
-    const btn = document.getElementById("qrRefreshBtn");
-    btn.textContent = "⏳ Yenileniyor...";
-    btn.disabled = true;
+  // Load announcements
+  async function loadAnnouncements() {
     try {
-      const r = await fetch("/api/qr-refresh", { method:"POST" });
-      const d = await r.json();
-      if (d.ok){ toast("✅ QR yenileniyor, birkaç saniye içinde tarayın"); }
-      else { toast("❌ " + (d.error||"Bilinmeyen hata"), true); }
-    } catch(e){ toast("❌ Bağlantı hatası", true); }
-    setTimeout(()=>{ btn.textContent = "🔄 QR'ı Yenile"; btn.disabled = false; }, 5000);
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      const container = document.getElementById('announcementList');
+
+      if (!data.announcementCount) {
+        container.innerHTML = '<div class="empty-state">Aktif duyuru yok.</div>';
+        return;
+      }
+
+      // Duyuruları ayrı API'den çekmek yerine basit göster
+      container.innerHTML = `<div class="ann-item">
+        <span class="ann-text">Yayın aktif — ${data.announcementCount} duyuru</span>
+        <span class="ann-interval">Çalışıyor</span>
+      </div>`;
+    } catch (e) {
+      console.error('Announcements load error:', e);
+    }
   }
 
-  // İlk yükleme ve otomatik yenileme
-  load();
-  setInterval(load, 5000);
+  // Add announcement
+  async function addAnnouncement() {
+    const text = document.getElementById('annText').value.trim();
+    const interval = document.getElementById('annInterval').value;
+    if (!text) { showToast('Mesaj boş olamaz!'); return; }
+
+    try {
+      const res = await fetch('/api/announcement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, interval }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showToast('✅ Duyuru eklendi ve yayın başladı!');
+        document.getElementById('annText').value = '';
+        loadAnnouncements();
+        loadStatus();
+      }
+    } catch (e) {
+      showToast('Hata: ' + e.message);
+    }
+  }
+
+  // Clear all
+  async function clearAll() {
+    if (!confirm('Tüm duyuruları silmek istediğinize emin misiniz?')) return;
+    try {
+      await fetch('/api/announcements', { method: 'DELETE' });
+      showToast('🗑️ Tüm duyurular temizlendi');
+      loadAnnouncements();
+      loadStatus();
+    } catch (e) {
+      showToast('Hata: ' + e.message);
+    }
+  }
+
+  // Init
+  loadStatus();
+  loadQR();
+
+  // Auto-refresh every 5s
+  setInterval(() => {
+    loadStatus();
+    loadQR();
+  }, 5000);
 </script>
 </body>
 </html>

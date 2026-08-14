@@ -1,71 +1,66 @@
-#!/usr/bin/env bash
-# ============================================================
-# MiranBot — whatsapp-web.js tabanlı kurulum betiği
-# VDS'te tek satır:
-#   sudo bash -c "$(curl -sSL https://raw.githubusercontent.com/koreucmiran13-netizen/Miranbotcuk/main/install.sh)"
-# ============================================================
+#!/bin/bash
+# MiranBot v2.0 Kurulum Betiği
+# VDS'e tam kurulum yapar: bağımlılıklar, Chrome, systemd servisi
+
 set -e
 
-BOT_DIR="/home/miranbot"
-RED='\033[0;31m'; GREEN='\033[0;32m'; NC='\033[0m'
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  MiranBot v2.0 — Kurulum Başlıyor..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-echo -e "${GREEN}[MiranBot] Kurulum başlıyor...${NC}"
+INSTALL_DIR="/home/miranbot"
+SERVICE_FILE="/etc/systemd/system/miranbot.service"
 
-# --- 1. Sistem bağımlılıkları ---
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -qq >/dev/null 2>&1
-apt-get install -y -qq git curl >/dev/null 2>&1
+# 1. Dizine geç
+cd "$INSTALL_DIR"
 
-# Puppeteer için Chromium bağımlılıkları (Ubuntu 20.04)
-apt-get install -y -qq \
-  ca-certificates fonts-liberation libasound2 libatk-bridge2.0-0 \
-  libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 \
-  libfontconfig1 libgbm1 libgcc1 libglib2.0-0 libgtk-3-0 libnspr4 \
-  libnss3 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 \
-  libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 \
-  libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release \
-  wget xdg-utils >/dev/null 2>&1 || true
-
-# --- 2. Node.js 22 ---
-if ! command -v node >/dev/null 2>&1 || [[ "$(node -v)" < v22 ]]; then
-  echo "[MiranBot] Node.js kuruluyor..."
-  curl -fsSL https://deb.nodesource.com/setup_22.x | bash - >/dev/null 2>&1
-  apt-get install -y -qq nodejs >/dev/null 2>&1
-fi
-echo "[MiranBot] Node.js $(node -v)"
-
-# --- 3. Depo ---
-if [ -d "$BOT_DIR/.git" ]; then
-  cd "$BOT_DIR"
-  git fetch origin main
-  git reset --hard origin/main
+# 2. Eski session kalıntılarını temizle (gerekirse)
+if [ -d "$INSTALL_DIR/.wwebjs_cache" ]; then
+  echo "[1/5] Eski Chrome cache temizleniyor..."
+  rm -rf "$INSTALL_DIR/.wwebjs_cache"
 else
-  rm -rf "$BOT_DIR"
-  mkdir -p "$BOT_DIR"
-  git clone --depth 1 https://github.com/koreucmiran13-netizen/Miranbotcuk.git "$BOT_DIR"
+  echo "[1/5] Cache temiz — devam"
 fi
-cd "$BOT_DIR"
 
-# --- 4. Bağımlılıklar ---
-echo "[MiranBot] Bağımlılıklar kuruluyor..."
-# Eski puppeteer/wwebjs cache'lerini temizle (inject uyumluluğu için)
-rm -rf "$BOT_DIR/.wwebjs_cache" "$BOT_DIR/.cache/puppeteer"
-npm install --no-audit --no-fund
+# 3. Sistem bağımlılıkları
+echo "[2/5] Sistem bağımlılıkları kontrol ediliyor..."
+apt-get update -qq && apt-get install -y -qq \
+  gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 \
+  libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 \
+  libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 \
+  libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 \
+  libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 \
+  libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation \
+  libappindicator1 libnss3 lsb-release xdg-utils wget 2>/dev/null || true
 
-# --- 5. systemd servisi ---
-cat > /etc/systemd/system/miranbot.service <<'EOF'
+# 4. Node.js 18+ kontrolü
+echo "[3/5] Node.js sürümü: $(node -v)"
+if [ -z "$(command -v node)" ]; then
+  echo "Node.js bulunamadı, kurulum gerekli."
+  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+  apt-get install -y nodejs
+fi
+
+# 5. npm install
+echo "[4/5] npm bağımlılıkları kuruluyor..."
+npm install --production
+
+# 6. systemd servisi oluştur
+echo "[5/5] Sistem servisi oluşturuluyor..."
+cat > "$SERVICE_FILE" <<EOF
 [Unit]
-Description=MiranBot — WhatsApp Bot (whatsapp-web.js)
-After=network-online.target
-Wants=network-online.target
+Description=MiranBot - WhatsApp Bot (v2.0)
+After=network.target
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/home/miranbot
-ExecStart=/usr/bin/node server.js
+WorkingDirectory=$INSTALL_DIR
+ExecStart=/usr/bin/node $INSTALL_DIR/server.js
 Restart=always
 RestartSec=5
+StandardOutput=journal
+StandardError=journal
 Environment=NODE_ENV=production
 
 [Install]
@@ -73,15 +68,19 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable miranbot >/dev/null 2>&1
+systemctl enable miranbot
 systemctl restart miranbot
-sleep 3
 
 echo ""
-echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}MiranBot kuruldu ve çalışıyor!${NC}"
-echo -e "${GREEN}========================================${NC}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  ✅ MiranBot v2.0 Kurulum Tamamlandı!"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "Panel: http://$(curl -s ifconfig.me):3000"
-echo "Kontrol: systemctl status miranbot"
-echo "Log: journalctl -u miranbot -f"
+echo "  Panel: http://$(hostname -I | awk '{print $1}'):3000"
+echo "  veya:  http://2.56.248.252:3000"
+echo ""
+echo "  Servis komutları:"
+echo "    systemctl status miranbot"
+echo "    systemctl restart miranbot"
+echo "    journalctl -u miranbot -f"
+echo ""
