@@ -77,14 +77,24 @@ async function loadAllGroups() {
   try {
     const chats = await client.getChats();
     console.log(`[CACHE] Toplam ${chats.length} sohbet yüklendi`);
+
     for (const c of chats) {
-      if (c.isGroup && c.id?._serialized) {
-        groupCache[c.id._serialized] = {
-          id: c.id._serialized,
-          name: c.name || null,
-          lastSeen: Date.now(),
-        };
+      if (!c.isGroup || !c.id?._serialized) continue;
+
+      const gid = c.id._serialized;
+      let name = c.name || c.title || null;
+
+      // Eğer isim yoksa getChatById ile dene
+      if (!name) {
+        try {
+          const chat = await client.getChatById(gid);
+          name = chat?.name || chat?.title || null;
+        } catch {
+          // getChatById hatası — ID ile devam
+        }
       }
+
+      groupCache[gid] = { id: gid, name, lastSeen: Date.now() };
     }
     console.log(`[CACHE] ${Object.keys(groupCache).length} grup cache'lendi`);
   } catch (e) {
@@ -352,7 +362,7 @@ function setupClient(c) {
       const chatId = msg.from || msg.to || "";
       const trimmed = body.trim();
 
-      // Grup cache'e ekle
+      // Grup cache'e ekle — ismi msg.from'dan çözmeye çalış
       addToGroupCache(chatId, null);
 
       // Davet linki içeren mesajları otomatik işle (!katil gerekmeden)
