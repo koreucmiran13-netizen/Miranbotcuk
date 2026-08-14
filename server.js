@@ -310,6 +310,45 @@ app.get("/", (req, res) => {
 // Tüm statik dosyalar
 app.use(express.static(DATA_DIR));
 
+// QR yenileme — oturumu sıfırlayıp yeni QR oluşturur
+app.post("/api/qr-refresh", async (req, res) => {
+  try {
+    console.log("[PANEL] QR yenileniyor...");
+    qrDataUrl = null;
+    if (authed) {
+      await client.logout();
+    } else {
+      await client.destroy();
+    }
+    authed = false;
+    // client'ı yeniden oluştur
+    client = new Client({
+      authStrategy: new LocalAuth({ dataPath: DATA_DIR }),
+      puppeteer: {
+        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+      },
+    });
+    client.on("qr", async (qr) => {
+      qrDataUrl = await qrcode.toDataURL(qr);
+      console.log("[BOT] Yeni QR oluşturuldu — panelden tarayın.");
+    });
+    client.on("ready", () => {
+      authed = true;
+      console.log("[BOT] Bağlandı — MiranBot yayında.");
+      restartTimer();
+    });
+    client.on("disconnected", () => {
+      authed = false;
+      console.log("[BOT] Bağlantı kesildi, tekrar bağlanıyor...");
+    });
+    client.initialize();
+    res.json({ ok: true, message: "QR yenileniyor, birkaç saniye sonra tarayın." });
+  } catch (e) {
+    console.error("[ERR] QR yenileme hatası:", e);
+    res.status(500).json({ error: String(e) });
+  }
+});
+
 app.get("/api/status", (req, res) => {
   res.json({
     authed,
