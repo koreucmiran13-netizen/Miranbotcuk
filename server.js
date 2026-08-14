@@ -84,7 +84,27 @@ async function loadAllGroups() {
       const gid = c.id._serialized;
       let name = c.name || c.title || null;
 
-      // Eğer isim yoksa getChatById ile dene
+      // Eğer isim yoksa Store'dan puppeteer evaluate ile çek
+      if (!name) {
+        try {
+          const storeName = await client.pupPage.evaluate(
+            (chatId) => {
+              try {
+                const chatStore = window.Store.Chat.get(chatId);
+                return chatStore?.name || chatStore?.contact?.name || chatStore?.title || null;
+              } catch {
+                return null;
+              }
+            },
+            gid,
+          );
+          name = storeName || null;
+        } catch {
+          // evaluate hatası — ID ile devam
+        }
+      }
+
+      // Fallback: getChatById
       if (!name) {
         try {
           const chat = await client.getChatById(gid);
