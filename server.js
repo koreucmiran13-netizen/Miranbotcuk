@@ -54,6 +54,9 @@ let authed = false;
 let client = null;
 let timer = null; // yayın zamanlayıcısı
 
+// Grup cache — getChats() inject sorunu nedeniyle mesajlardan öğreniyoruz
+let groupCache = {}; // chatId -> { id, name }
+
 /* ------------------------------------------------------------------ */
 /*  Yardımcılar                                                         */
 /* ------------------------------------------------------------------ */
@@ -144,6 +147,19 @@ client.on("message", async (msg) => {
   if (!body) return;
 
   const chatId = msg.from || msg.to || "";
+  
+  // Grup cache'e ekle (mesajdan öğreniyoruz)
+  if (chatId && chatId.includes("@g.us") && !groupCache[chatId]) {
+    groupCache[chatId] = { id: chatId, name: null };
+    // Chat adını almayı dene (arada sıra çalışır)
+    try {
+      const c = await msg.getChat();
+      if (c?.name) groupCache[chatId].name = c.name;
+    } catch {
+      /* ad alınamadı, chatId ile devam */
+    }
+  }
+  
   console.log(`[MSG] Mesaj alındı: "${body.slice(0, 60)}" (${chatId})`);
 
   const isCmd = body.startsWith("!");
@@ -275,8 +291,29 @@ client.on("message", async (msg) => {
 /*  Yayın motoru                                                        */
 /* ------------------------------------------------------------------ */
 async function broadcast(text) {
-  const chats = await client.getChats();
+  // getChats() inject sorunu nedeniyle: önce cache'den, sonra getChats dene
+  let chats = [];
+  try {
+    chats = await client.getChats();
+  } catch {
+    console.error("[BCAST] getChats hatası, cache'den gönderiliyor");
+  }
+  
   const groups = chats.filter((c) => c.isGroup);
+  
+  // Cache'deki grupları da ekle (getChats'te olmayanları)
+  for (const gid of Object.keys(groupCache)) {
+    const exists = groups.find((g) => g.id._serialized === gid);
+    if (!exists) {
+      try {
+        const chat = await client.getChatById(gid);
+        if (chat) groups.push(chat);
+      } catch {
+        /* o chat artık yok veya erişilemiyor */
+      }
+    }
+  }
+  
   console.log(`[BCAST] Duyuru ${groups.length} gruba gönderiliyor...`);
   for (const g of groups) {
     try {
@@ -344,14 +381,31 @@ app.get("/api/status", (req, res) => {
 app.get("/api/groups", async (req, res) => {
   try {
     if (!client?.info) return res.json({ groups: [] });
-    const chats = await client.getChats();
-    const groups = chats
-      .filter((c) => c.isGroup)
-      .map((c) => ({
-        id: c.id._serialized,
-        name: c.name || "İsimsiz Grup",
-        selected: c.id._serialized === config.adminGroupId,
-      }));
+    // Önce cache'den dön — getChats() inject sorunu nedeniyle
+    let groups = Object.values(groupCache).map((g) => ({
+      id: g.id,
+      name: g.name || g.id.split("@")[0].slice(0, 12) + "...",
+      selected: g.id === config.adminGroupId,
+    }));
+    // Cache boşsa getChats dene (belki çalışır)
+    if (!groups.length) {
+      try {
+        const chats = await client.getChats();
+        groups = chats
+          .filter((c) => c.isGroup)
+          .map((c) => {
+            const cid = c.id._serialized;
+            groupCache[cid] = { id: cid, name: c.name || null };
+            return {
+              id: cid,
+              name: c.name || cid.split("@")[0].slice(0, 12) + "...",
+              selected: cid === config.adminGroupId,
+            };
+          });
+      } catch {
+        /* getChats da çöktü, cache ile devam */
+      }
+    }
     res.json({ groups });
   } catch (e) {
     res.status(500).json({ error: String(e) });
