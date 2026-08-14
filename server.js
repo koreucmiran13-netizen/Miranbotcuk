@@ -13,8 +13,7 @@
  * Davet linki içeren mesajlar WhatsApp'ın "Gruba Katıl" kartını
  * otomatik göstermesi için olduğu gibi (bölünmeden) gönderilir.
  */
-import wweb from "whatsapp-web.js";
-const { Client, LocalAuth, MessageMedia } = wweb;
+import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
 import qrcode from "qrcode";
 import express from "express";
 import fs from "fs";
@@ -82,8 +81,29 @@ function parseInviteLink(text) {
 client = new Client({
   authStrategy: new LocalAuth({ dataPath: DATA_DIR }),
   puppeteer: {
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    headless: "shell", // Yeni headless modu — WhatsApp Web inject uyumluluğu
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-extensions",
+      "--disable-background-networking",
+      "--disable-sync",
+      "--metrics-recording-only",
+      "--disable-default-apps",
+      "--no-zygote",
+      "--use-mock-keychain",
+      "--js-flags=--max-old-space-size=256",
+    ],
+    defaultViewport: null,
   },
+  webVersionCache: { type: "remote" },
+  userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+  restartOnAuthFail: true,
+  takeoverOnConflict: true,
 });
 
 client.on("qr", async (qr) => {
@@ -110,8 +130,7 @@ client.on("remote_session_saved", () => {
 /*  Mesaj işleme                                                        */
 /* ------------------------------------------------------------------ */
 client.on("message", async (msg) => {
-  // body ve getChat bazı mesajlarda crash edebilir — güvenli al
-  let body, chat;
+  let body;
   try {
     body = (msg.body || "").trim();
   } catch {
@@ -119,12 +138,16 @@ client.on("message", async (msg) => {
   }
   if (!body) return;
 
+  console.log(`[MSG] Mesaj alındı: "${body.slice(0, 60)}"`);
+
+  let chat;
   try {
     chat = await msg.getChat();
   } catch {
-    // getChat çökerse mesajı güvenli şekilde atla
+    console.error("[MSG] getChat hatası, mesaj atlandı");
     return;
   }
+
   const isCmd = body.startsWith("!");
 
   // Komutlar SADECE admin grubundan
@@ -309,45 +332,6 @@ app.get("/", (req, res) => {
 
 // Tüm statik dosyalar
 app.use(express.static(DATA_DIR));
-
-// QR yenileme — oturumu sıfırlayıp yeni QR oluşturur
-app.post("/api/qr-refresh", async (req, res) => {
-  try {
-    console.log("[PANEL] QR yenileniyor...");
-    qrDataUrl = null;
-    if (authed) {
-      await client.logout();
-    } else {
-      await client.destroy();
-    }
-    authed = false;
-    // client'ı yeniden oluştur
-    client = new Client({
-      authStrategy: new LocalAuth({ dataPath: DATA_DIR }),
-      puppeteer: {
-        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-      },
-    });
-    client.on("qr", async (qr) => {
-      qrDataUrl = await qrcode.toDataURL(qr);
-      console.log("[BOT] Yeni QR oluşturuldu — panelden tarayın.");
-    });
-    client.on("ready", () => {
-      authed = true;
-      console.log("[BOT] Bağlandı — MiranBot yayında.");
-      restartTimer();
-    });
-    client.on("disconnected", () => {
-      authed = false;
-      console.log("[BOT] Bağlantı kesildi, tekrar bağlanıyor...");
-    });
-    client.initialize();
-    res.json({ ok: true, message: "QR yenileniyor, birkaç saniye sonra tarayın." });
-  } catch (e) {
-    console.error("[ERR] QR yenileme hatası:", e);
-    res.status(500).json({ error: String(e) });
-  }
-});
 
 app.get("/api/status", (req, res) => {
   res.json({
