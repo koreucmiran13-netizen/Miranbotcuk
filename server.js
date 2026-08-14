@@ -289,10 +289,14 @@ const random = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 /*  Panel (Express)                                                     */
 /* ------------------------------------------------------------------ */
 const app = express();
+app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send(panelHtml());
+  res.sendFile(`${DATA_DIR}/panel.html`);
 });
+
+// Tüm statik dosyalar
+app.use(express.static(DATA_DIR));
 
 app.get("/api/status", (req, res) => {
   res.json({
@@ -303,6 +307,67 @@ app.get("/api/status", (req, res) => {
   });
 });
 
+// Grup listesi (admin grubu seçimi kutucukları için)
+app.get("/api/groups", async (req, res) => {
+  try {
+    if (!client?.info) return res.json({ groups: [] });
+    const chats = await client.getChats();
+    const groups = chats
+      .filter((c) => c.isGroup)
+      .map((c) => ({
+        id: c.id._serialized,
+        name: c.name || "İsimsiz Grup",
+        selected: c.id._serialized === config.adminGroupId,
+      }));
+    res.json({ groups });
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+});
+
+// Admin grubunu panelden seç
+app.post("/api/admin-group", async (req, res) => {
+  const { groupId } = req.body || {};
+  if (!groupId) return res.status(400).json({ error: "groupId gerekli" });
+  config.adminGroupId = groupId;
+  saveConfig();
+  console.log(`[PANEL] Admin grubu seçildi: ${groupId}`);
+  res.json({ ok: true, adminGroupId: groupId });
+});
+
+// Duyuru ekle
+app.post("/api/announcement", async (req, res) => {
+  const { text, minutes } = req.body || {};
+  if (!text) return res.status(400).json({ error: "Mesaj gerekli" });
+  const m = Math.max(1, Math.min(parseInt(minutes) || 10, 1440));
+  config.announcements.push({ text, minutes: m });
+  saveConfig();
+  restartTimer();
+  console.log(`[PANEL] Duyuru eklendi: "${text.slice(0, 50)}" her ${m} dk`);
+  res.json({ ok: true, announcements: config.announcements });
+});
+
+// Duyuru sil (index ile)
+app.post("/api/announcement/delete", async (req, res) => {
+  const { index } = req.body || {};
+  const i = parseInt(index);
+  if (isNaN(i) || i < 0 || i >= config.announcements.length) {
+    return res.status(400).json({ error: "Geçersiz index" });
+  }
+  config.announcements.splice(i, 1);
+  saveConfig();
+  restartTimer();
+  res.json({ ok: true, announcements: config.announcements });
+});
+
+// Tüm duyuruları temizle
+app.post("/api/announcements/clear", async (req, res) => {
+  config.announcements = [];
+  saveConfig();
+  restartTimer();
+  res.json({ ok: true, announcements: [] });
+});
+
 app.listen(PORT, () => {
   console.log(`[SERVER] Panel: http://localhost:${PORT}`);
 });
@@ -310,9 +375,9 @@ app.listen(PORT, () => {
 client.initialize();
 
 /* ------------------------------------------------------------------ */
-/*  Panel HTML                                                          */
+/*  Panel HTML — panel.html dosyasına yazılıyor (server.js sonunda)   */
 /* ------------------------------------------------------------------ */
-function panelHtml() {
+function _old_panelHtml() {
   return `<!DOCTYPE html>
 <html lang="tr">
 <head>

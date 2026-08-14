@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MiranBot — Yönetim Paneli</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+         background:linear-gradient(135deg,#0b1020 0%,#101932 100%);
+         color:#e7ecf5; min-height:100vh; }
+  .wrap { max-width:960px; margin:0 auto; padding:28px 16px; }
+  header { display:flex; align-items:center; justify-content:space-between;
+           margin-bottom:24px; }
+  h1 { font-size:24px; }
+  h1 span { color:#25D366; }
+  .sub { color:#8a94ad; font-size:13px; margin-top:2px; }
+  .card { background:#131a2e; border:1px solid #1e2944; border-radius:14px;
+          padding:20px; margin-bottom:16px; }
+  .card h2 { font-size:13px; color:#8a94ad; font-weight:700; margin-bottom:14px;
+             text-transform:uppercase; letter-spacing:1px; }
+  .dot { width:10px; height:10px; border-radius:50%; display:inline-block;
+         margin-right:8px; }
+  .on { background:#25D366; box-shadow:0 0 10px #25D366; }
+  .off { background:#ff5a5f; }
+  #qr { max-width:260px; border-radius:12px; display:block; margin-top:10px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:640px){ .grid{grid-template-columns:1fr;} }
+  .stat { background:#0f1629; border:1px solid #1e2944; border-radius:10px;
+          padding:14px; text-align:center; }
+  .stat .num { font-size:26px; font-weight:800; color:#25D366; }
+  .stat .lbl { font-size:12px; color:#8a94ad; margin-top:4px; }
+  .gitem { display:flex; align-items:center; padding:10px 12px;
+           background:#0f1629; border:1px solid #1e2944; border-radius:10px;
+           margin-bottom:8px; cursor:pointer; transition:.15s; }
+  .gitem:hover { border-color:#25D366; }
+  .gitem.sel { border-color:#25D366; background:#0d2818; }
+  .gitem .box { width:20px; height:20px; border:2px solid #3b4767;
+                border-radius:5px; margin-right:12px; flex:0 0 20px;
+                display:flex; align-items:center; justify-content:center; }
+  .gitem.sel .box { background:#25D366; border-color:#25D366; }
+  .gitem.sel .box::after { content:"✓"; color:#062213; font-weight:800; font-size:13px; }
+  .gitem .gname { flex:1; font-size:14px; overflow:hidden;
+                  white-space:nowrap; text-overflow:ellipsis; }
+  .gitem .tag { font-size:10px; background:#1c2745; color:#8a94ad;
+                padding:3px 8px; border-radius:999px; margin-left:8px; }
+  .row { display:flex; gap:10px; margin-top:10px; }
+  input,textarea,select { background:#0f1629; border:1px solid #1e2944;
+                          color:#e7ecf5; border-radius:10px; padding:12px;
+                          font-size:14px; font-family:inherit; }
+  textarea { resize:vertical; min-height:80px; }
+  input:focus,textarea:focus { outline:none; border-color:#25D366; }
+  button { background:#25D366; color:#062213; border:none; border-radius:10px;
+           padding:12px 20px; font-size:14px; font-weight:700; cursor:pointer;
+           transition:.15s; }
+  button:hover { filter:brightness(1.1); }
+  button.secondary { background:#1c2745; color:#e7ecf5; }
+  button.danger { background:#ff5a5f; color:#fff; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th { text-align:left; color:#8a94ad; font-weight:700; padding:10px;
+       border-bottom:1px solid #1e2944; }
+  td { padding:10px; border-bottom:1px solid #141d34; vertical-align:middle; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+           background:#25D366; color:#062213; font-weight:700; padding:12px 24px;
+           border-radius:999px; opacity:0; transition:.3s; pointer-events:none;
+           z-index:99; }
+  .toast.show { opacity:1; }
+  .empty { color:#5c6788; font-size:13px; padding:14px 0; text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>🤖 MiranBot <span>Panel</span></h1>
+      <p class="sub">7/24 WhatsApp duyuru botu — whatsapp-web.js</p>
+    </div>
+  </header>
+
+  <!-- DURUM -->
+  <div class="card">
+    <h2>📡 Durum</h2>
+    <p id="statusLine" style="font-size:14px">Yükleniyor...</p>
+    <div class="grid" style="margin-top:14px">
+      <div class="stat"><div class="num" id="gCount">—</div><div class="lbl">Grup</div></div>
+      <div class="stat"><div class="num" id="aCount">0</div><div class="lbl">Aktif Duyuru</div></div>
+    </div>
+  </div>
+
+  <!-- QR -->
+  <div class="card" id="qrCard" style="display:none">
+    <h2>🔐 QR Kodu ile Bağlan</h2>
+    <p style="color:#8a94ad;font-size:13px;margin-bottom:8px">
+      WhatsApp → Bağlı Cihazlar → QR tarat
+    </p>
+    <img id="qr" src="" alt="QR" />
+  </div>
+
+  <!-- ADMIN GRUBU -->
+  <div class="card">
+    <h2>👑 Admin Grubu Seç</h2>
+    <p style="color:#8a94ad;font-size:13px;margin-bottom:12px">
+      Komutlar yalnızca seçili gruptan dinlenir. Kutucuğa tıkla.
+    </p>
+    <div id="groupList" class="empty">Gruplar yükleniyor...</div>
+  </div>
+
+  <!-- DUYURU EKLE -->
+  <div class="card">
+    <h2>📨 Yeni Duyuru Ekle</h2>
+    <textarea id="msgText" placeholder="Yayınlanacak mesajı yaz... (link eklersen Gruba Katıl kartı otomatik görünür)"></textarea>
+    <div class="row">
+      <input id="msgMin" type="number" min="1" max="1440" value="10" style="width:110px" />
+      <span style="align-self:center;font-size:13px;color:#8a94ad">dakika aralık</span>
+      <button onclick="addAnn()">➕ Ekle ve Başlat</button>
+    </div>
+  </div>
+
+  <!-- AKTİF DUYURULAR -->
+  <div class="card">
+    <h2>📋 Aktif Duyurular</h2>
+    <table>
+      <thead><tr><th>#</th><th>Mesaj</th><th>Aralık</th><th></th></tr></thead>
+      <tbody id="annBody"><tr><td colspan="4" class="empty">Yükleniyor...</td></tr></tbody>
+    </table>
+    <div class="row" style="margin-top:14px">
+      <button class="danger" onclick="clearAll()">🗑 Tümünü Temizle</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+  function toast(msg){
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"), 2500);
+  }
+  function esc(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+  let currentAdmin = null;
+
+  async function load(){
+    try {
+      const r = await fetch("/api/status");
+      const d = await r.json();
+      currentAdmin = d.adminGroupId;
+      document.getElementById("statusLine").innerHTML =
+        '<span class="dot ' + (d.authed?"on":"off") + '"></span>' +
+        (d.authed ? "WhatsApp'a bağlı — 7/24 yayında" : "QR bekleniyor — aşağıdan taratın");
+      const qrCard = document.getElementById("qrCard");
+      if (!d.authed && d.qr){
+        qrCard.style.display = "block";
+        document.getElementById("qr").src = d.qr;
+      } else { qrCard.style.display = "none"; }
+      document.getElementById("aCount").textContent = d.announcements ? d.announcements.length : 0;
+      renderAnn(d.announcements || []);
+    } catch(e){ console.error(e); }
+    try {
+      const r = await fetch("/api/groups");
+      const d = await r.json();
+      document.getElementById("gCount").textContent = d.groups ? d.groups.length : 0;
+      renderGroups(d.groups || []);
+    } catch(e){ console.error(e); }
+  }
+
+  function renderGroups(groups){
+    const el = document.getElementById("groupList");
+    if (!groups.length){ el.className = "empty"; el.textContent = "Henüz grupta değilsin — !katil ile gruplara gir."; return; }
+    el.className = "";
+    el.innerHTML = groups.map(g=>
+      '<div class="gitem ' + (g.id===currentAdmin?"sel":"") + '" onclick="pickGroup(\'' + esc(g.id) + '\')">' +
+      '<div class="box"></div><div class="gname">' + esc(g.name) + '</div>' +
+      (g.selected?'<div class="tag">Admin</div>':'') +
+      '</div>').join("");
+  }
+
+  async function pickGroup(id){
+    await fetch("/api/admin-group", { method:"POST",
+      headers:{"Content-Type":"application/json"}, body: JSON.stringify({groupId:id}) });
+    toast("✅ Admin grubu seçildi — komutlar artık bu gruptan dinleniyor");
+    load();
+  }
+
+  function renderAnn(arr){
+    const tb = document.getElementById("annBody");
+    if (!arr.length){ tb.innerHTML = '<tr><td colspan="4" class="empty">Aktif duyuru yok</td></tr>'; return; }
+    tb.innerHTML = arr.map((a,i)=>
+      '<tr><td>' + (i+1) + '</td><td style="max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(a.text) +
+      '</td><td>her ' + a.minutes + ' dk</td><td>' +
+      '<button class="danger" style="padding:6px 12px;font-size:12px" onclick="delAnn('+i+')">🗑</button></td></tr>').join("");
+  }
+
+  async function addAnn(){
+    const text = document.getElementById("msgText").value.trim();
+    const minutes = document.getElementById("msgMin").value;
+    if (!text){ toast("⚠️ Mesaj yazmalısın"); return; }
+    await fetch("/api/announcement", { method:"POST",
+      headers:{"Content-Type":"application/json"}, body: JSON.stringify({text, minutes}) });
+    document.getElementById("msgText").value = "";
+    toast("✅ Duyuru eklendi — yayın başladı");
+    load();
+  }
+
+  async function delAnn(i){
+    await fetch("/api/announcement/delete", { method:"POST",
+      headers:{"Content-Type":"application/json"}, body: JSON.stringify({index:i}) });
+    toast("🗑 Duyuru silindi");
+    load();
+  }
+
+  async function clearAll(){
+    if (!confirm("Tüm duyuruları silip yayını durdurmak istediğine emin misin?")) return;
+    await fetch("/api/announcements/clear", { method:"POST" });
+    toast("🗑 Tüm duyurular temizlendi — yayın durdu");
+    load();
+  }
+
+  load();
+  setInterval(load, 5000);
+</script>
+</body>
+</html>
