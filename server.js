@@ -13,10 +13,16 @@
  * Davet linki içeren mesajlar WhatsApp'ın "Gruba Katıl" kartını
  * otomatik göstermesi için olduğu gibi (bölünmeden) gönderilir.
  */
-import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
-import qrcode from "qrcode";
-import express from "express";
-import fs from "fs";
+import WWebJS from "whatsapp-web.js";
+const { Client, LocalAuth, MessageMedia } = WWebJS;
+import Qrcode from "qrcode";
+import Express from "express";
+import Fs from "fs";
+
+// Alias tanımları
+const qrcode = Qrcode;
+const express = Express;
+const fs = Fs;
 
 const PORT = 3000;
 const DATA_DIR = "/home/miranbot";
