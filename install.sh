@@ -46,6 +46,9 @@ else
 fi
 cd "$BOT_DIR"
 
+# Eski .mjs kalıntılarını temizle (servis her zaman server.js çalıştırır)
+rm -f "$BOT_DIR"/server.mjs
+
 # --- 4. Bağımlılıklar ---
 echo "[MiranBot] Bağımlılıklar kuruluyor..."
 npm install --no-audit --no-fund
