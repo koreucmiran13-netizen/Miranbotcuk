@@ -110,10 +110,21 @@ client.on("remote_session_saved", () => {
 /*  Mesaj işleme                                                        */
 /* ------------------------------------------------------------------ */
 client.on("message", async (msg) => {
-  const body = (msg.body || "").trim();
+  // body ve getChat bazı mesajlarda crash edebilir — güvenli al
+  let body, chat;
+  try {
+    body = (msg.body || "").trim();
+  } catch {
+    return;
+  }
   if (!body) return;
 
-  const chat = await msg.getChat();
+  try {
+    chat = await msg.getChat();
+  } catch {
+    // getChat çökerse mesajı güvenli şekilde atla
+    return;
+  }
   const isCmd = body.startsWith("!");
 
   // Komutlar SADECE admin grubundan
