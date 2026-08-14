@@ -1,15 +1,4 @@
 node_modules/
-.next/
-coverage/
-.DS_Store
-*.log
-.env*
-!.env.example
-auth_info_baileys
-auth_info_baileys_*
-sessions/
-uploads
+.wwebjs_auth/
 bot_config.json
-dist/
-.tsbuildinfo
-users.json
+*.log
