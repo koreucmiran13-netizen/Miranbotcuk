@@ -1,0 +1,6 @@
+{
+  "name": "Miran Bot - WhatsApp Duyuru Paneli",
+  "description": "WhatsApp grupları için Miran Bot otomatik duyuru ve yönetim paneli.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
