@@ -1011,9 +1011,6 @@ async function runBroadcasts() {
                     if (urlInfo) result = await safeSendMessage(botId, gid, { text: broadcast.message, linkPreview: urlInfo });
                     else result = await safeSendMessage(botId, gid, { text: broadcast.message });
                   }
-                    if (urlInfo) result = await safeSendMessage(botId, gid, { text: broadcast.message, linkPreview: urlInfo });
-                    else result = await safeSendMessage(botId, gid, { text: broadcast.message });
-                  }
 
                   if (result) {
                     config.sentCount = (config.sentCount || 0) + 1;
