@@ -802,9 +802,33 @@ Merhaba! Miran Bot'u yönetmek için aşağıdaki komutları kullanabilirsiniz.
         ? (instance.activity || 'Çevrimiçi, grupları dinliyor ve duyuruları sırayla gönderiyor.') 
         : 'Bot pasif modda, çalışmıyor.';
 
+      loadUsers();
+      const currentUser = users.find(u => u.botId === botId);
+      let expiryText = '♾️ Sınırsız / Yönetici';
+      if (currentUser && currentUser.role === 'user' && currentUser.expiresAt) {
+        try {
+          const expDate = new Date(currentUser.expiresAt);
+          const today = new Date();
+          expDate.setHours(0,0,0,0);
+          today.setHours(0,0,0,0);
+          
+          const diffTime = expDate.getTime() - today.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (diffDays < 0) {
+            expiryText = `❌ Süresi Doldu (${currentUser.expiresAt})`;
+          } else {
+            expiryText = `⏳ ${diffDays} gün kaldı (${currentUser.expiresAt})`;
+          }
+        } catch (e) {
+          expiryText = `⏳ ${currentUser.expiresAt}`;
+        }
+      }
+
       const statusText = `🤖 *Miran Bot Durum Raporu* 🤖
 
 📊 *Genel İstatistikler:*
+• *Kiralama Süresi:* ${expiryText}
 • *Aktif Olduğu Grup Sayısı:* ${groupCount} grup
 • *Atılan Duyuru Mesajı:* ${config.sentCount || 0} adet
 • *Bağlantı Durumu:* ${instance.connectionStatus === 'connected' ? '✅ Bağlı' : '❌ Bağlı Değil'}
