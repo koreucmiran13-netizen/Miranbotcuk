@@ -1005,23 +1005,12 @@ async function runBroadcasts() {
                   instance.sock.sendPresenceUpdate('paused', gid).catch(() => {});
 
                   let result = null;
-                  const hasLink = broadcast.message.match(/https?:\/\//);
                   if (broadcast.imageUrl && fs.existsSync(broadcast.imageUrl)) {
-                    if (hasLink) {
-                      // Send the image first
-                      await safeSendMessage(botId, gid, { image: fs.readFileSync(broadcast.imageUrl) });
-                      // Wait briefly so they deliver in perfect order
-                      await delay(1500);
-                      // Send the text with link preview card
-                      if (urlInfo) {
-                        result = await safeSendMessage(botId, gid, { text: broadcast.message, linkPreview: urlInfo });
-                      } else {
-                        result = await safeSendMessage(botId, gid, { text: broadcast.message });
-                      }
-                    } else {
-                      result = await safeSendMessage(botId, gid, { image: fs.readFileSync(broadcast.imageUrl), caption: broadcast.message });
-                    }
+                    result = await safeSendMessage(botId, gid, { image: fs.readFileSync(broadcast.imageUrl), caption: broadcast.message });
                   } else {
+                    if (urlInfo) result = await safeSendMessage(botId, gid, { text: broadcast.message, linkPreview: urlInfo });
+                    else result = await safeSendMessage(botId, gid, { text: broadcast.message });
+                  }
                     if (urlInfo) result = await safeSendMessage(botId, gid, { text: broadcast.message, linkPreview: urlInfo });
                     else result = await safeSendMessage(botId, gid, { text: broadcast.message });
                   }
