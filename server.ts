@@ -1498,7 +1498,9 @@ setInterval(() => {
 
 // Vite Integration
 async function startServer() {
-  const isProd = process.env.NODE_ENV === 'production' || fs.existsSync(path.join(process.cwd(), 'dist', 'index.html'));
+  const isProd = process.env.NODE_ENV === 'production' || 
+                 fs.existsSync(path.join(process.cwd(), 'dist', 'index.html')) ||
+                 fs.existsSync(path.join(__dirname, 'index.html'));
   
   if (!isProd) {
     const vite = await createViteServer({
@@ -1507,9 +1509,13 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    app.use(express.static(path.join(process.cwd(), 'dist')));
+    const distPath = fs.existsSync(path.join(__dirname, 'index.html')) 
+      ? __dirname 
+      : path.join(process.cwd(), 'dist');
+      
+    app.use(express.static(distPath));
     app.get('*all', (req, res) => {
-      res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
+      res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
