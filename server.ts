@@ -29,7 +29,7 @@ const geminiClient = new GoogleGenAI({
 });
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT ? parseInt(process.env.PORT) : 3001;
 const host = '0.0.0.0';
 
 app.use(cors());
